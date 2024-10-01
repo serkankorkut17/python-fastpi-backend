@@ -42,3 +42,11 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Function to set up the database (if needed)
+def init_db():
+    db = db_session()
+    try:
+        Base.metadata.create_all(bind=db.bind)  # Create all tables
+    finally:
+        db.close()

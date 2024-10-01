@@ -3,7 +3,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship 
 # from datetime import datetime
 
-from db_configuration import Base
+from app.db_configuration import Base
 
 class Role(Base):
     __tablename__ = 'roles'
