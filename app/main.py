@@ -1,29 +1,32 @@
 import uvicorn
 import graphene
+import bcrypt
 from fastapi import FastAPI, Depends, HTTPException
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import EmailStr
-
-import bcrypt
 
 import models
 from db_configuration import get_db
 from schemas import UserModel, RoleModel, UserSchema
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 # FastAPI app initialization
 app = FastAPI()
 
+
 # Function to hash a password
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt(rounds=12)
-    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-    return hashed.decode('utf-8')
+    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed.decode("utf-8")
+
 
 # Function to verify the password
 def check_password(entered_password: str, stored_hashed_password: str) -> bool:
-    return bcrypt.checkpw(entered_password.encode('utf-8'), stored_hashed_password.encode('utf-8'))
+    return bcrypt.checkpw(
+        entered_password.encode("utf-8"), stored_hashed_password.encode("utf-8")
+    )
 
 
 # GraphQL Queries
@@ -71,7 +74,7 @@ class CreateUser(graphene.Mutation):
     @staticmethod
     def mutate(root, info, username, email, role_id, password):
         db: Session = info.context["db"]
-        
+
         # Validate role_id here, e.g., check if role exists (optional)
         role = db.query(models.Role).filter(models.Role.id == role_id).first()
         if not role:
@@ -86,9 +89,9 @@ class CreateUser(graphene.Mutation):
             username=user_data.username,
             email=user_data.email,
             role_id=user_data.role_id,
-            hashed_password=hashed_password
+            hashed_password=hashed_password,
         )
-        
+
         # Add user to the session and commit
         try:
             db.add(db_user)
@@ -98,7 +101,9 @@ class CreateUser(graphene.Mutation):
             return CreateUser(ok=ok, user_id=db_user.id)  # Return created user's ID
         except IntegrityError as e:
             db.rollback()  # Roll back the session on error
-            raise HTTPException(status_code=400, detail=str(e.orig))  # Provide a clear error message
+            raise HTTPException(
+                status_code=400, detail=str(e.orig)
+            )  # Provide a clear error message
 
 
 class CreateRole(graphene.Mutation):
@@ -123,7 +128,9 @@ class CreateRole(graphene.Mutation):
             return CreateRole(ok=True, role_id=role.id)
         except IntegrityError as e:
             db.rollback()
-            raise HTTPException(status_code=400, detail="Error creating role: " + str(e.orig))
+            raise HTTPException(
+                status_code=400, detail="Error creating role: " + str(e.orig)
+            )
 
 
 # Mutation class to add all mutations
@@ -139,8 +146,9 @@ app.mount(
         schema=graphene.Schema(query=Query, mutation=UserMutations),
         context_value=lambda request: {"db": next(get_db())},
         on_get=make_graphiql_handler(),
-    )
+    ),
 )
+
 
 # Example root route
 @app.get("/")
