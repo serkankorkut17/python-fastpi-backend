@@ -32,6 +32,9 @@ db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind
 # Base class for models
 Base = declarative_base()
 
+# Create all tables in the database
+# Base.metadata.create_all(bind=engine)
+
 # Attach a convenient query property to the Base class for ORM queries
 Base.query = db_session.query_property()
 
