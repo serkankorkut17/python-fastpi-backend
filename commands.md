@@ -5,12 +5,39 @@ alembic init alembic
 docker-compose run app alembic revision --autogenerate -m "New Migration" 
 docker-compose run app alembic upgrade head
 
-mutation CreateNewPost{ createNewPost(title:"new title1", content:"new content") { ok } }
-
 query{ allPosts{ title } }
 
 query{ postById(postId:2){ id title content } }
 
+
+mutation CreateRole {
+    createRole(name:"Admin", description:"Administrator role with full permissions") {
+        ok,
+        roleId
+    }
+}
+
+mutation CreateUser {
+    createUser(username:"test", email:"test@test.com", roleId:1, password:"password") {
+        ok,
+        userId
+    }
+}
+
+
+mutation Login {
+    login(username:"test", password:"password") {
+        ok,
+        accessToken
+    }
+}
+
+mutation CreatePost {
+    createPost(title:"a title", content:"a content") {
+        ok,
+        postId
+    }
+}
 
 
 

@@ -1,8 +1,10 @@
 import graphene
 from fastapi import HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
+import jwt
 
 from app.utils import (
     hash_password,
@@ -35,7 +37,7 @@ class Login(graphene.Mutation):
             "user_id": user.id,
             "username": user.username,
             "role": user.role.name,  # Include the user's role
-            "iat": datetime.now(),  # Time the token was issued
+            "iat": datetime.utcnow(),  # Time the token was issued
         }
         access_token = create_access_token(
             data=data, expires_delta=access_token_expires
@@ -127,25 +129,40 @@ class CreatePost(graphene.Mutation):
         db: Session = info.context["db"]
 
         # Decode JWT from header
-        authorization = info.context["request"].headers.get("Authorization")
+        # Get the Authorization header from the request
+        request = info.context["request"]
+
+        print(request.headers)
+        authorization = request.headers.get("Authorization")
+
         if not authorization:
             raise HTTPException(status_code=401, detail="Authorization header missing")
 
-        token = authorization.split(" ")[1]
-        token_data = decode_access_token(token)
+        # Extract and decode the JWT token
+        try:
+            token = authorization.split(" ")[1]  # 'Bearer <token>'
+            token_data = decode_access_token(token)
+        except (IndexError, AttributeError):
+            raise HTTPException(status_code=401, detail="Invalid Authorization format")
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token has expired")
+        except jwt.InvalidTokenError:
+            raise HTTPException(status_code=401, detail="Invalid token")
 
         # Check if the token is valid
-        if token_data["user"] is None:
+        if token_data["username"] is None:
             raise HTTPException(status_code=401, detail="Invalid token")
 
         # Fetch the user based on token
         user = (
             db.query(models.User)
-            .filter(models.User.username == token_data["user"])
+            .filter(models.User.username == token_data["username"])
             .first()
         )
         if not user:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise HTTPException(
+                status_code=401, detail="User not found or invalid token"
+            )
 
         # Create new post
         db_post = models.Post(title=title, content=content, user_id=user.id)

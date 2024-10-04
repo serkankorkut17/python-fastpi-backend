@@ -31,7 +31,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     :return: Encoded JWT token as a string.
     """
     to_encode = data.copy()
-    expire = datetime.now() + (
+    expire = datetime.utcnow() + (
         expires_delta or timedelta(minutes=30)
     )  # Default to 30 minutes if no expiration provided
     to_encode.update({"exp": expire, "aud": audience, "iss": issuer})
@@ -51,7 +51,12 @@ def decode_access_token(token: str):
     """
     try:
         token_data = jwt.decode(
-            token, secret_key, algorithms=[algorithm], audience=audience, issuer=issuer
+            token,
+            secret_key,
+            algorithms=[algorithm],
+            audience=audience,
+            issuer=issuer,
+            leeway=10,  # Allows 10 seconds of clock skew tolerance
         )
         return token_data
     except jwt.ExpiredSignatureError:

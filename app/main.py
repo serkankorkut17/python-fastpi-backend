@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
 from contextlib import asynccontextmanager
 
@@ -25,7 +25,10 @@ app.mount(
     "/graphql",
     GraphQLApp(
         schema=schema,
-        context_value=lambda request: {"db": next(get_db())},
+        context_value=lambda request: {
+            "request": request,  # Include the request object
+            "db": next(get_db()),  # Include the db session
+        },
         on_get=make_graphiql_handler(),
     ),
 )
