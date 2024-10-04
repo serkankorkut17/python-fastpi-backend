@@ -9,8 +9,8 @@ import jwt
 from app.utils import (
     hash_password,
     authenticate_user,
-    create_access_token,
-    decode_access_token,
+    generate_access_token,
+    check_auth,
 )
 import app.models as models
 
@@ -32,16 +32,7 @@ class Login(graphene.Mutation):
         user = authenticate_user(db, username, password)
 
         # Generate access token
-        access_token_expires = timedelta(minutes=60)
-        data = {
-            "user_id": user.id,
-            "username": user.username,
-            "role": user.role.name,  # Include the user's role
-            "iat": datetime.utcnow(),  # Time the token was issued
-        }
-        access_token = create_access_token(
-            data=data, expires_delta=access_token_expires
-        )
+        access_token = generate_access_token(user)
 
         return Login(ok=True, access_token=access_token)
 
@@ -131,27 +122,10 @@ class CreatePost(graphene.Mutation):
         # Decode JWT from header
         # Get the Authorization header from the request
         request = info.context["request"]
-
-        print(request.headers)
         authorization = request.headers.get("Authorization")
 
-        if not authorization:
-            raise HTTPException(status_code=401, detail="Authorization header missing")
-
-        # Extract and decode the JWT token
-        try:
-            token = authorization.split(" ")[1]  # 'Bearer <token>'
-            token_data = decode_access_token(token)
-        except (IndexError, AttributeError):
-            raise HTTPException(status_code=401, detail="Invalid Authorization format")
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(status_code=401, detail="Token has expired")
-        except jwt.InvalidTokenError:
-            raise HTTPException(status_code=401, detail="Invalid token")
-
-        # Check if the token is valid
-        if token_data["username"] is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        # Check if the user is authenticated
+        token_data = check_auth(authorization)
 
         # Fetch the user based on token
         user = (

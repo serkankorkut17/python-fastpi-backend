@@ -63,3 +63,37 @@ def decode_access_token(token: str):
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+def generate_access_token(user):
+    access_token_expires = timedelta(minutes=60)
+    data = {
+        "user_id": user.id,
+        "username": user.username,
+        "role": user.role.name,  # Include the user's role
+        "iat": datetime.utcnow(),  # Time the token was issued
+    }
+    access_token = create_access_token(data=data, expires_delta=access_token_expires)
+
+    return access_token
+
+# check authorization
+def check_auth(authorization: str):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header missing")
+
+    # Extract and decode the JWT token
+    try:
+        token = authorization.split(" ")[1]  # 'Bearer <token>'
+        token_data = decode_access_token(token)
+    except (IndexError, AttributeError):
+        raise HTTPException(status_code=401, detail="Invalid Authorization format")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    if token_data["username"] is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    return token_data
