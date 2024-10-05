@@ -1,8 +1,11 @@
-from celery import shared_task
+# from celery import shared_task
 
-import time
+# import time
 
-@shared_task
-def task_example(a: int, b: int):
-    time.sleep(a + b)
-    return "Task completed successfully"
+# from app.celery_worker import celery
+
+
+# @celery.task(name="task_example")
+# def task_example(a: int, b: int):
+#     time.sleep(a + b)
+#     return "Task completed successfully"

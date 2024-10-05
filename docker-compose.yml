@@ -1,5 +1,4 @@
 services:
-
   db:
     container_name: postgresql_db
     image: postgres
@@ -34,7 +33,6 @@ services:
       - db
     restart: always
 
-
   redis:
     container_name: redis
     image: redis:6.2-alpine
@@ -45,13 +43,12 @@ services:
   celery_worker:
     container_name: celery_worker
     build: .
-    command: celery -A celery_worker.celery worker --loglevel=info
+    command: celery -A app.celery_worker.celery worker --loglevel=info
     volumes:
       - .:/app
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - PYTHONPATH=/app
     depends_on:
       - db
       - redis

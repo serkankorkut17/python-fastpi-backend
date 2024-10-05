@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from app.db_configuration import get_db, init_db
 from app.graphql import schema
 
-import app.tasks.task_example as task_example
+import app.celery_worker as cw
 
 
 @asynccontextmanager
@@ -41,9 +41,10 @@ app.mount(
 async def test(a: int, b: int):
     print("a:", a)
     print("b:", b)
-    task = task_example.task_example.delay(a, b)
-    return JSONResponse({"Result": task.get()})
-    # return {"task_id": task.id, "status": task.status}
+    task = cw.task_example.delay(a, b)
+    return JSONResponse(
+        {"Result": task.get(), "Task ID": task.id, "Task Status": task.status}
+    )
 
 
 # Example root route
