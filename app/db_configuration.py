@@ -6,14 +6,14 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from dotenv import load_dotenv
 
 # Load environment variables from a .env file
-load_dotenv("../.env")
+load_dotenv(".env")
 
 # Fetch the database URL from environment variables
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Use SQLite for testing if DATABASE_URL is not set
-TEMP_DATABASE_URL="sqlite:///./test.db"
-SQLALCHEMY_DATABASE_URL = TEMP_DATABASE_URL
+# TEMP_DATABASE_URL="sqlite:///./test.db"
+# SQLALCHEMY_DATABASE_URL = TEMP_DATABASE_URL
 
 # Error handling if the environment variable is not found
 if not SQLALCHEMY_DATABASE_URL:
@@ -22,7 +22,7 @@ if not SQLALCHEMY_DATABASE_URL:
 # Create the SQLAlchemy engine
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,  # Database URL
-    connect_args={"check_same_thread": False},  # Required for SQLite
+    # connect_args={"check_same_thread": False},  # Required for SQLite
     pool_pre_ping=True,  # Option to ensure the connection is alive before using
 )
 

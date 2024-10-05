@@ -1,10 +1,13 @@
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
 from contextlib import asynccontextmanager
 
 from app.db_configuration import get_db, init_db
 from app.graphql import schema
+
+import app.tasks.task_example as task_example
 
 
 @asynccontextmanager
@@ -35,8 +38,12 @@ app.mount(
 
 
 @app.get("/test")
-def test():
-    return {"message": "This is a test route"}
+async def test(a: int, b: int):
+    print("a:", a)
+    print("b:", b)
+    task = task_example.task_example.delay(a, b)
+    return JSONResponse({"Result": task.get()})
+    # return {"task_id": task.id, "status": task.status}
 
 
 # Example root route

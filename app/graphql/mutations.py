@@ -1,6 +1,5 @@
 import graphene
 from fastapi import HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
@@ -13,6 +12,7 @@ from app.utils import (
     check_auth,
 )
 import app.models as models
+import app.crud as crud
 
 
 # GraphQL Mutations
@@ -52,9 +52,10 @@ class CreateUser(graphene.Mutation):
         db: Session = info.context["db"]
 
         # Validate role_id here, e.g., check if role exists (optional)
-        role = db.query(models.Role).filter(models.Role.id == role_id).first()
+        role = crud.find_role_by_id(db, role_id)
         if not role:
-            raise HTTPException(status_code=400, detail="Role not found")
+            raise HTTPException(status_code=404, detail="Role not found")
+        
 
         hashed_password = hash_password(password)
 
@@ -68,11 +69,9 @@ class CreateUser(graphene.Mutation):
 
         # Add user to the session and commit
         try:
-            db.add(db_user)
-            db.commit()
-            db.refresh(db_user)
+            user_id = crud.save_to_db(db, db_user)
             ok = True
-            return CreateUser(ok=ok, user_id=db_user.id)  # Return created user's ID
+            return CreateUser(ok=ok, user_id=user_id)  # Return created user's ID
         except IntegrityError as e:
             db.rollback()  # Roll back the session on error
             raise HTTPException(
@@ -96,10 +95,8 @@ class CreateRole(graphene.Mutation):
         db_role = models.Role(name=name, description=description)
 
         try:
-            db.add(db_role)
-            db.commit()
-            db.refresh(db_role)
-            return CreateRole(ok=True, role_id=db_role.id)
+            role_id = crud.save_to_db(db, db_role)
+            return CreateRole(ok=True, role_id=role_id)
         except IntegrityError as e:
             db.rollback()
             raise HTTPException(
@@ -128,11 +125,8 @@ class CreatePost(graphene.Mutation):
         token_data = check_auth(authorization)
 
         # Fetch the user based on token
-        user = (
-            db.query(models.User)
-            .filter(models.User.username == token_data["username"])
-            .first()
-        )
+        user = crud.find_user_by_username(db, token_data["username"])
+
         if not user:
             raise HTTPException(
                 status_code=401, detail="User not found or invalid token"
@@ -142,10 +136,8 @@ class CreatePost(graphene.Mutation):
         db_post = models.Post(title=title, content=content, user_id=user.id)
 
         try:
-            db.add(db_post)
-            db.commit()
-            db.refresh(db_post)
-            return CreatePost(ok=True, post_id=db_post.id)
+            post_id = crud.save_to_db(db, db_post)
+            return CreatePost(ok=True, post_id=post_id)
         except Exception as e:
             db.rollback()
             raise HTTPException(

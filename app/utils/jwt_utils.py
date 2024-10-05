@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from fastapi import HTTPException
 
 
-load_dotenv("../../.env")
+load_dotenv(".env")
 
 # Ensure the SECRET_KEY is set and handle the error if it's missing
 secret_key = os.getenv("SECRET_KEY")

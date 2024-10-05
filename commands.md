@@ -1,15 +1,21 @@
-fastapi uvicorn sqlalchemy graphene graphene-sqlalchemy alembic psycopg2 black python-dotenv
-
+<!-- if not created -->
 alembic init alembic
 
+<!-- docker -->
+docker-compose up
+docker-compose build
+docker-compose build --no-cache
+
+<!-- for migrations -->
 docker-compose run app alembic revision --autogenerate -m "New Migration" 
 docker-compose run app alembic upgrade head
 
+<!-- queries -->
 query{ allPosts{ title } }
 
 query{ postById(postId:2){ id title content } }
 
-
+<!-- mutations -->
 mutation CreateRole {
     createRole(name:"Admin", description:"Administrator role with full permissions") {
         ok,
@@ -42,7 +48,7 @@ mutation CreatePost {
 
 
 
-
+<!-- notes -->
 Amazing tutorial.
 If you're coming here in 2023, here's a couple of things you need to know.
 1. graphql is no longer accessible through starlette, use from starlette_graphene3 import GraphQLApp
