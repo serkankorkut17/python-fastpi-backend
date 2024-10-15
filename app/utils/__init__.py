@@ -2,6 +2,8 @@
 
 from .password_utils import hash_password, check_password, authenticate_user
 from .jwt_utils import create_access_token, decode_access_token, generate_access_token, check_auth
+from .image_utils import compress_image, convert_to_webp
+from .video_utils import compress_video, convert_to_webm
 
 __all__ = [
     "hash_password",
@@ -11,4 +13,8 @@ __all__ = [
     "decode_access_token",
     "generate_access_token",
     "check_auth",
+    "compress_image",
+    "convert_to_webp",
+    "compress_video",
+    "convert_to_webm",
 ]

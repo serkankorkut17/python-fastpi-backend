@@ -14,7 +14,9 @@ click-plugins==1.1.1
 click-repl==0.3.0
 fastapi==0.115.0
 FastAPI-SQLAlchemy==0.2.1
+ffmpeg-python==0.2.0
 flower==2.0.1
+future==1.0.0
 graphene==3.3
 graphene-sqlalchemy==3.0.0rc1
 graphql-core==3.2.4
@@ -29,6 +31,7 @@ MarkupSafe==2.1.5
 mypy-extensions==1.0.0
 packaging==24.1
 pathspec==0.12.1
+pillow==11.0.0
 platformdirs==4.3.6
 prometheus_client==0.21.0
 promise==2.3

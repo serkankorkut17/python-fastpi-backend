@@ -1,6 +1,8 @@
 <!-- if not created -->
 alembic init alembic
 
+pip freeze > requirements.txt 
+
 <!-- docker -->
 docker-compose up
 docker-compose build
@@ -11,6 +13,21 @@ docker-compose run app alembic revision --autogenerate -m "New Migration"
 docker-compose run app alembic upgrade head
 
 <!-- queries -->
+query User{
+  userById(
+    userId:1
+  ) {
+    id
+    username
+    email
+	roleId
+    role
+    createdAt
+    updatedAt
+    lastLogin
+    posts
+  }
+}
 query{ allPosts{ title } }
 
 query{ postById(postId:2){ id title content } }
