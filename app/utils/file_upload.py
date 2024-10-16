@@ -8,6 +8,9 @@ from datetime import datetime
 
 def handle_file_upload(uploaded_file, upload_folder):
     """Handles the process of saving and converting an uploaded file to the appropriate format."""
+    if uploaded_file is None:
+        return None
+
     upload_directory = os.path.join("./uploads", upload_folder)
     os.makedirs(upload_directory, exist_ok=True)  # Create the directory if it doesn't exist
 

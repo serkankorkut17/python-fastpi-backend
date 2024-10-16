@@ -11,6 +11,7 @@ from app.utils import (
     authenticate_user,
     generate_access_token,
     check_auth,
+    handle_file_upload
 )
 import app.models as models
 import app.crud as crud
@@ -72,6 +73,8 @@ class CreateUser(graphene.Mutation):
         # Add user to the session and commit
         try:
             user_id = crud.save_to_db(db, db_user)
+            db_user.profile = models.UserProfile(first_name=username, last_name=username)
+            crud.save_to_db(db, db_user.profile)
             ok = True
             return CreateUser(ok=ok, user_id=user_id)  # Return created user's ID
         except IntegrityError as e:
@@ -107,8 +110,8 @@ class CreateRole(graphene.Mutation):
         
 class UpdateUserProfile(graphene.Mutation):
     class Arguments:
-        first_name = graphene.String(required=True)
-        last_name = graphene.String(required=True)
+        first_name = graphene.String(required=False)
+        last_name = graphene.String(required=False)
         bio = graphene.String(required=False)
         profile_picture = Upload(required=False)  # Optional image upload
 
@@ -134,15 +137,27 @@ class UpdateUserProfile(graphene.Mutation):
             raise HTTPException(
                 status_code=401, detail="User not found or invalid token"
             )
+        
+        db_profile = user.profile
+        if not db_profile:
+            raise HTTPException(
+                status_code=404, detail="User profile not found"
+            )
+        
+        # Update profile picture if provided
+        profile_picture_path = handle_file_upload(profile_photo, "profile_pictures") if profile_photo else None
 
-        # Update user profile
-        db_profile = models.UserProfile(
-            user_id=user.id,
-            first_name=first_name,
-            last_name=last_name,
-            bio=bio,
-            profile_photo=profile_photo,
-        )
+        # Update profile attributes
+        updated_attributes = {
+            'first_name': first_name,
+            'last_name': last_name,
+            'bio': bio,
+            'profile_photo': profile_picture_path,
+        }
+        
+        for attr, value in updated_attributes.items():
+            if value is not None:  # Only update if value is provided
+                setattr(db_profile, attr, value)
 
         try:
             user_id = crud.save_to_db(db, db_profile)
@@ -197,7 +212,8 @@ class CreatePost(graphene.Mutation):
 
 # Mutation class to add all mutations
 class Mutation(graphene.ObjectType):
-    create_user = CreateUser.Field()
     create_role = CreateRole.Field()
+    create_user = CreateUser.Field()
     login = Login.Field()
+    update_user_profile = UpdateUserProfile.Field()
     create_post = CreatePost.Field()
