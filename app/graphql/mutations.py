@@ -1,5 +1,6 @@
 import graphene
 from fastapi import HTTPException
+from graphene_file_upload.scalars import Upload
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
@@ -33,6 +34,7 @@ class Login(graphene.Mutation):
 
         # Generate access token
         access_token = generate_access_token(user)
+        # !!!!!!! add last_login to user
 
         return Login(ok=True, access_token=access_token)
 
@@ -101,6 +103,54 @@ class CreateRole(graphene.Mutation):
             db.rollback()
             raise HTTPException(
                 status_code=400, detail="Error creating role: " + str(e.orig)
+            )
+        
+class UpdateUserProfile(graphene.Mutation):
+    class Arguments:
+        first_name = graphene.String(required=True)
+        last_name = graphene.String(required=True)
+        bio = graphene.String(required=False)
+        profile_picture = Upload(required=False)  # Optional image upload
+
+    ok = graphene.Boolean()
+    user_id = graphene.Int()
+
+    @staticmethod
+    def mutate(root, info, first_name=None, last_name=None, bio=None, profile_photo=None):
+        db: Session = info.context["db"]
+
+        # Decode JWT from header
+        # Get the Authorization header from the request
+        request = info.context["request"]
+        authorization = request.headers.get("Authorization")
+
+        # Check if the user is authenticated
+        token_data = check_auth(authorization)
+
+        # Fetch the user based on token
+        user = crud.find_user_by_username(db, token_data["username"])
+
+        if not user:
+            raise HTTPException(
+                status_code=401, detail="User not found or invalid token"
+            )
+
+        # Update user profile
+        db_profile = models.UserProfile(
+            user_id=user.id,
+            first_name=first_name,
+            last_name=last_name,
+            bio=bio,
+            profile_photo=profile_photo,
+        )
+
+        try:
+            user_id = crud.save_to_db(db, db_profile)
+            return UpdateUserProfile(ok=True, user_id=user_id)
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=400, detail="Error updating user profile: " + str(e)
             )
 
 

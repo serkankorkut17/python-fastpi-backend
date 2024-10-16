@@ -1,4 +1,5 @@
 from PIL import Image
+import shutil
 import os
 
 def compress_image(input_image_path, output_image_path, quality=75, lossless=False, effort=4):
