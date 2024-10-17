@@ -1,6 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
 from contextlib import asynccontextmanager
 
@@ -14,13 +15,25 @@ import app.celery_worker as cw
 async def lifespan(app: FastAPI):
     try:
         init_db()
+        app.state.db_session = get_db()  # Get a new session
         yield
     finally:
-        await app.state.db_session.close()
+        pass
+        app.state.db_session.close()  # Close the session
+        # await app.state.db_session.close()
 
 
 # FastAPI app initialization
 app = FastAPI(lifespan=lifespan)
+
+# Add CORS middleware to the FastAPI app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 # Add the GraphQL route to FastAPI with dependency injection for database session

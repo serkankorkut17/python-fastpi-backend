@@ -2,12 +2,13 @@ import os
 import shutil
 from fastapi import HTTPException
 from PIL import Image
-from app.utils.video_utils import compress_video
+# from app.utils.video_utils import compress_video
 from app.utils.image_utils import compress_image
 from datetime import datetime
 
 def handle_file_upload(uploaded_file, upload_folder):
     """Handles the process of saving and converting an uploaded file to the appropriate format."""
+    print(f"Uploaded file: {uploaded_file.filename} ......................")
     if uploaded_file is None:
         return None
 
@@ -33,9 +34,9 @@ def handle_file_upload(uploaded_file, upload_folder):
         if uploaded_file.content_type.startswith('image/'):
             output_file_path = os.path.join(upload_directory, f"{timestamp}_{base_filename}.webp")
             compress_image(temp_file_path, output_file_path)  # Convert to WebP
-        elif uploaded_file.content_type.startswith('video/'):
-            output_file_path = os.path.join(upload_directory, f"{timestamp}_{base_filename}.webm")
-            compress_video(temp_file_path, output_file_path)  # Compress video
+        # elif uploaded_file.content_type.startswith('video/'):
+        #     output_file_path = os.path.join(upload_directory, f"{timestamp}_{base_filename}.webm")
+        #     compress_video(temp_file_path, output_file_path)  # Compress video
         else:
             raise HTTPException(status_code=400, detail="Unsupported file type. Please upload an image or video.")
     except Exception as e:
