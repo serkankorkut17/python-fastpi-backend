@@ -64,7 +64,10 @@ class Login(graphene.Mutation):
 
         # Generate access token
         access_token = generate_access_token(user)
-        # !!!!!!! add last_login to user
+
+        # update last_login field
+        user.last_login = datetime.utcnow()
+        crud.save_to_db(db, user)
 
         return Login(ok=True, access_token=access_token)
 
@@ -247,65 +250,65 @@ class CreatePost(graphene.Mutation):
             )
 
 
-class MyUpload(graphene.Mutation):
-    class Arguments:
-        file = Upload(required=True)
+# class MyUpload(graphene.Mutation):
+#     class Arguments:
+#         file = Upload(required=True)
 
-    ok = graphene.Boolean()
+#     ok = graphene.Boolean()
 
-    @staticmethod
-    async def mutate(root, info, file):
+#     @staticmethod
+#     async def mutate(root, info, file):
 
-        logger.info(f"Request headers: {info.context['request'].headers}")
-        logger.info(f"Request method: {info.context['request'].method}")
+#         logger.info(f"Request headers: {info.context['request'].headers}")
+#         logger.info(f"Request method: {info.context['request'].method}")
 
-        request = info.context["request"]
-        logger.info(f"Request: {dir(request)}")
+#         request = info.context["request"]
+#         logger.info(f"Request: {dir(request)}")
 
-        # Read and log request body as JSON
-        req_body = await request.body()
+#         # Read and log request body as JSON
+#         req_body = await request.body()
         
-        # Convert the request body to a string for printing
-        body_str = req_body.decode("utf-8") if isinstance(req_body, bytes) else str(req_body)
+#         # Convert the request body to a string for printing
+#         body_str = req_body.decode("utf-8") if isinstance(req_body, bytes) else str(req_body)
         
-        # Log the request body
-        logger.info(f"Request body: {body_str}")
-        # Log request details
-        logger.info(f"Request headers: {request.headers}")
-        logger.info(f"Request method: {request.method}")
-        logger.info(f"Request URL: {request.url}")
-        logger.info(f"Request query parameters: {request.query_params}")
-        logger.info(f"Request path parameters: {request.path_params}")
-        logger.info(f"Request client: {request.client}")
-        logger.info(f"Request cookies: {request.cookies}")
+#         # Log the request body
+#         logger.info(f"Request body: {body_str}")
+#         # Log request details
+#         logger.info(f"Request headers: {request.headers}")
+#         logger.info(f"Request method: {request.method}")
+#         logger.info(f"Request URL: {request.url}")
+#         logger.info(f"Request query parameters: {request.query_params}")
+#         logger.info(f"Request path parameters: {request.path_params}")
+#         logger.info(f"Request client: {request.client}")
+#         logger.info(f"Request cookies: {request.cookies}")
 
-        # Define the upload directory
-        upload_folder = "uploads"
-        upload_directory = os.path.join(
-            os.getcwd(), upload_folder
-        )  # Ensures correct path
-        os.makedirs(
-            upload_directory, exist_ok=True
-        )  # Create directory if it doesn't exist
+#         # Define the upload directory
+#         upload_folder = "uploads"
+#         upload_directory = os.path.join(
+#             os.getcwd(), upload_folder
+#         )  # Ensures correct path
+#         os.makedirs(
+#             upload_directory, exist_ok=True
+#         )  # Create directory if it doesn't exist
 
-        # Create a unique filename using the current timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        original_filename = file.filename
-        base_filename, extension = os.path.splitext(original_filename)
+#         # Create a unique filename using the current timestamp
+#         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#         original_filename = file.filename
+#         base_filename, extension = os.path.splitext(original_filename)
 
-        # Save the file with the new unique name
-        output_file_path = os.path.join(
-            upload_directory, f"{timestamp}_{base_filename}{extension}"
-        )
+#         # Save the file with the new unique name
+#         output_file_path = os.path.join(
+#             upload_directory, f"{timestamp}_{base_filename}{extension}"
+#         )
 
-        with open(output_file_path, "wb") as destination:
-            shutil.copyfileobj(file.file, destination)
+#         with open(output_file_path, "wb") as destination:
+#             shutil.copyfileobj(file.file, destination)
 
-        # Check if the file was saved
-        if os.path.exists(output_file_path):
-            return MyUpload(ok=True)
-        else:
-            return MyUpload(ok=False)
+#         # Check if the file was saved
+#         if os.path.exists(output_file_path):
+#             return MyUpload(ok=True)
+#         else:
+#             return MyUpload(ok=False)
         
 
 # class FileUploadMutation(graphene.Mutation):
@@ -326,7 +329,7 @@ class MyUpload(graphene.Mutation):
         
 #         return FileUploadMutation(ok=True, filename=file.filename, filepath=str(file_location))
     
-class FileUploadMutation(graphene.Mutation):
+class FileUpload(graphene.Mutation):
     class Arguments:
         file = Upload(required=True)
 
@@ -335,15 +338,17 @@ class FileUploadMutation(graphene.Mutation):
     filepath = graphene.String()
 
     async def mutate(self, info, file: UploadFile):
+        logger.info(f"Request headers: {info.context['request'].headers}")
+        logger.info(f"Request method: {info.context['request'].method}")
+        # filename includes directory path remove it
+        filename = file.filename.split("/")[-1]
         try:
-            file_location = f"uploads/{file.filename}"  # Specify your upload directory
+            file_location = f"uploads/{filename}"  # Specify your upload directory
             with open(file_location, "wb") as f:
                 f.write(await file.read())  # Save the uploaded file
-            return FileUploadMutation(ok=True, filename=file.filename, filepath=file_location)
+            return FileUpload(ok=True, filename=filename, filepath=file_location)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
-
-
 
 
 # Mutation class to add all mutations
@@ -352,6 +357,5 @@ class Mutation(graphene.ObjectType):
     create_user = CreateUser.Field()
     login = Login.Field()
     update_user_profile = UpdateUserProfile.Field()
-    my_upload = MyUpload.Field()
-    file_upload = FileUploadMutation.Field()
     create_post = CreatePost.Field()
+    file_upload = FileUpload.Field()
