@@ -35,30 +35,6 @@ class Login(graphene.Mutation):
     async def mutate(root, info, username, password):
         db: Session = info.context["db"]
 
-        # logger.info(f"Request headers: {info.context['request'].headers}")
-        # logger.info(f"Request method: {info.context['request'].method}")
-
-        # request = info.context["request"]
-        # logger.info(f"Request: {dir(request)}")
-
-        # # Read and log request body as JSON
-        # req_body = await request.body()
-        
-        # # Convert the request body to a string for printing
-        # body_str = req_body.decode("utf-8") if isinstance(req_body, bytes) else str(req_body)
-        
-        # # Log the request body
-        # logger.info(f"Request body: {body_str}")
-        # # Log request details
-        # logger.info(f"Request headers: {request.headers}")
-        # logger.info(f"Request method: {request.method}")
-        # logger.info(f"Request URL: {request.url}")
-        # logger.info(f"Request query parameters: {request.query_params}")
-        # logger.info(f"Request path parameters: {request.path_params}")
-        # logger.info(f"Request client: {request.client}")
-        # logger.info(f"Request cookies: {request.cookies}")
-
-
         # Authenticate the user
         user = authenticate_user(db, username, password)
 
@@ -68,6 +44,9 @@ class Login(graphene.Mutation):
         # update last_login field
         user.last_login = datetime.utcnow()
         crud.save_to_db(db, user)
+
+        # Log the successful login
+        logger.info(f"[{Login.__name__}] User {username} logged in successfully")
 
         return Login(ok=True, access_token=access_token)
 
@@ -89,6 +68,7 @@ class CreateUser(graphene.Mutation):
         # Validate role_id here, e.g., check if role exists (optional)
         role = crud.find_role_by_id(db, role_id)
         if not role:
+            logger.error(f"[{CreateUser.__name__}] Role with ID {role_id} not found")
             raise HTTPException(status_code=404, detail="Role not found")
 
         hashed_password = hash_password(password)
@@ -109,9 +89,13 @@ class CreateUser(graphene.Mutation):
             )
             crud.save_to_db(db, db_user.profile)
             ok = True
+            # Log the successful user creation
+            logger.info(f"[{CreateUser.__name__}] User {username} created successfully")
             return CreateUser(ok=ok, user_id=user_id)  # Return created user's ID
         except IntegrityError as e:
             db.rollback()  # Roll back the session on error
+            # Log the error
+            logger.error(f"[{CreateUser.__name__}] Error creating user: {str(e.orig)}")
             raise HTTPException(
                 status_code=400, detail=str(e.orig)
             )  # Provide a clear error message
@@ -134,9 +118,11 @@ class CreateRole(graphene.Mutation):
 
         try:
             role_id = crud.save_to_db(db, db_role)
+            logger.info(f"[{CreateRole.__name__}] Role {name} created successfully")
             return CreateRole(ok=True, role_id=role_id)
         except IntegrityError as e:
             db.rollback()
+            logger.error(f"[{CreateRole.__name__}] Error creating role: {str(e.orig)}")
             raise HTTPException(
                 status_code=400, detail="Error creating role: " + str(e.orig)
             )
@@ -147,7 +133,7 @@ class UpdateUserProfile(graphene.Mutation):
         first_name = graphene.String(required=False)
         last_name = graphene.String(required=False)
         bio = graphene.String(required=False)
-        profile_picture = Upload(required=False)  # Optional image upload
+        profile_photo = Upload(required=False)  # Optional image upload
 
     ok = graphene.Boolean()
     user_id = graphene.Int()
@@ -172,12 +158,18 @@ class UpdateUserProfile(graphene.Mutation):
         user = crud.find_user_by_username(db, token_data["username"])
 
         if not user:
+            logger.error(
+                f"[{UpdateUserProfile.__name__}] User not found or invalid token"
+            )
             raise HTTPException(
                 status_code=401, detail="User not found or invalid token"
             )
 
         db_profile = user.profile
         if not db_profile:
+            logger.error(
+                f"[{UpdateUserProfile.__name__}] User profile not found for user {user.username}"
+            )
             raise HTTPException(status_code=404, detail="User profile not found")
 
         # Update profile picture if provided
@@ -201,9 +193,15 @@ class UpdateUserProfile(graphene.Mutation):
 
         try:
             user_id = crud.save_to_db(db, db_profile)
+            logger.info(
+                f"[{UpdateUserProfile.__name__}] User profile updated successfully for user {user.username}"
+            )
             return UpdateUserProfile(ok=True, user_id=user_id)
         except Exception as e:
             db.rollback()
+            logger.error(
+                f"[{UpdateUserProfile.__name__}] Error updating user profile: {str(e)}"
+            )
             raise HTTPException(
                 status_code=400, detail="Error updating user profile: " + str(e)
             )
@@ -221,7 +219,6 @@ class CreatePost(graphene.Mutation):
     def mutate(root, info, title, content):
         db: Session = info.context["db"]
 
-        # Decode JWT from header
         # Get the Authorization header from the request
         request = info.context["request"]
         authorization = request.headers.get("Authorization")
@@ -233,6 +230,7 @@ class CreatePost(graphene.Mutation):
         user = crud.find_user_by_username(db, token_data["username"])
 
         if not user:
+            logger.error("User not found or invalid token")
             raise HTTPException(
                 status_code=401, detail="User not found or invalid token"
             )
@@ -250,85 +248,6 @@ class CreatePost(graphene.Mutation):
             )
 
 
-# class MyUpload(graphene.Mutation):
-#     class Arguments:
-#         file = Upload(required=True)
-
-#     ok = graphene.Boolean()
-
-#     @staticmethod
-#     async def mutate(root, info, file):
-
-#         logger.info(f"Request headers: {info.context['request'].headers}")
-#         logger.info(f"Request method: {info.context['request'].method}")
-
-#         request = info.context["request"]
-#         logger.info(f"Request: {dir(request)}")
-
-#         # Read and log request body as JSON
-#         req_body = await request.body()
-        
-#         # Convert the request body to a string for printing
-#         body_str = req_body.decode("utf-8") if isinstance(req_body, bytes) else str(req_body)
-        
-#         # Log the request body
-#         logger.info(f"Request body: {body_str}")
-#         # Log request details
-#         logger.info(f"Request headers: {request.headers}")
-#         logger.info(f"Request method: {request.method}")
-#         logger.info(f"Request URL: {request.url}")
-#         logger.info(f"Request query parameters: {request.query_params}")
-#         logger.info(f"Request path parameters: {request.path_params}")
-#         logger.info(f"Request client: {request.client}")
-#         logger.info(f"Request cookies: {request.cookies}")
-
-#         # Define the upload directory
-#         upload_folder = "uploads"
-#         upload_directory = os.path.join(
-#             os.getcwd(), upload_folder
-#         )  # Ensures correct path
-#         os.makedirs(
-#             upload_directory, exist_ok=True
-#         )  # Create directory if it doesn't exist
-
-#         # Create a unique filename using the current timestamp
-#         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-#         original_filename = file.filename
-#         base_filename, extension = os.path.splitext(original_filename)
-
-#         # Save the file with the new unique name
-#         output_file_path = os.path.join(
-#             upload_directory, f"{timestamp}_{base_filename}{extension}"
-#         )
-
-#         with open(output_file_path, "wb") as destination:
-#             shutil.copyfileobj(file.file, destination)
-
-#         # Check if the file was saved
-#         if os.path.exists(output_file_path):
-#             return MyUpload(ok=True)
-#         else:
-#             return MyUpload(ok=False)
-        
-
-# class FileUploadMutation(graphene.Mutation):
-#     class Arguments:
-#         file = Upload(required=True)
-
-#     ok = graphene.Boolean()
-#     filename = graphene.String()
-#     filepath = graphene.String()
-
-#     async def mutate(self, info, file):
-#         upload_dir = Path("uploads")
-#         upload_dir.mkdir(parents=True, exist_ok=True)
-        
-#         file_location = upload_dir / file.filename
-#         with open(file_location, "wb") as f:
-#             f.write(await file.read())
-        
-#         return FileUploadMutation(ok=True, filename=file.filename, filepath=str(file_location))
-    
 class FileUpload(graphene.Mutation):
     class Arguments:
         file = Upload(required=True)
@@ -338,16 +257,19 @@ class FileUpload(graphene.Mutation):
     filepath = graphene.String()
 
     async def mutate(self, info, file: UploadFile):
-        logger.info(f"Request headers: {info.context['request'].headers}")
-        logger.info(f"Request method: {info.context['request'].method}")
+        # upload_dir = Path("uploads")
+        # upload_dir.mkdir(parents=True, exist_ok=True)
+        # file_location = upload_dir / file.filename
         # filename includes directory path remove it
         filename = file.filename.split("/")[-1]
         try:
             file_location = f"uploads/{filename}"  # Specify your upload directory
             with open(file_location, "wb") as f:
                 f.write(await file.read())  # Save the uploaded file
+            logger.info(f"[{FileUpload.__name__}] File uploaded successfully: {filename}")
             return FileUpload(ok=True, filename=filename, filepath=file_location)
         except Exception as e:
+            logger.error(f"[{FileUpload.__name__}] Error uploading file: {str(e)}")
             raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 

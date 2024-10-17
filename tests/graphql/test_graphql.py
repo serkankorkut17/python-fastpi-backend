@@ -1,7 +1,5 @@
 from pathlib import Path
 import pytest
-from httpx import AsyncClient
-from fastapi.testclient import TestClient
 import os
 import json
 import io
@@ -15,7 +13,10 @@ USER_NAME = "test"
 USER_EMAIL = "test@test.com"
 USER_PASSWORD = "password"
 ACCESS_TOKEN = None
-USER_PROFILE_PICTURE = "tests/test_profile_picture.jpeg"
+NEW_FIRST_NAME = "NewFirstName"
+NEW_LAST_NAME = "NewLastName"
+NEW_BIO = "NewBio"
+USER_PROFILE_PICTURE = "tests/imgs/test_profile_picture.jpeg"
 
 
 def test_create_role(client):
@@ -67,55 +68,68 @@ def test_login(client):
     global ACCESS_TOKEN
     ACCESS_TOKEN = response.json()["data"]["login"]["accessToken"]
 
+
 def test_update_user_profile(client):
     global ACCESS_TOKEN  # Use the access token obtained from test_login
+    global NEW_FIRST_NAME  # New first name to update
+    global NEW_LAST_NAME  # New last name to update
+    global NEW_BIO  # New bio to update
+    global USER_PROFILE_PICTURE  # Path to the profile picture file
 
-    # Define the mutation for updating first and last name
-    mutation = """
-    mutation UpdateUserProfile($firstName: String, $lastName: String) {
-        updateUserProfile(firstName: $firstName, lastName: $lastName) {
-            ok
-            userId
+    # Ensure the file exists before running the test
+    assert Path(USER_PROFILE_PICTURE).exists()
+
+    operations = json.dumps(
+        {
+            "query": """
+        mutation($firstName: String, $lastName: String, $bio: String, $profilePhoto: Upload) {
+            updateUserProfile(firstName: $firstName, lastName: $lastName, bio: $bio, profilePhoto: $profilePhoto) {
+                ok
+                userId
+            }
         }
-    }
-    """
-    
-    variables = {
-        "firstName": "NewFirstName",
-        "lastName": "NewLastName"
-    }
-
-    # Send the mutation with the authorization token
-    headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}"
-    }
-    
-    response = client.post(
-        "/graphql/",
-        json={"query": mutation, "variables": variables},
-        headers=headers
+        """,
+            "variables": {
+                "firstName": NEW_FIRST_NAME,
+                "lastName": NEW_LAST_NAME,
+                "bio": NEW_BIO,
+                "profilePhoto": None,
+            },
+        }
     )
-    
-    # Assertions to validate the update was successful
+
+    map_data = json.dumps({"0": ["variables.profilePhoto"]})
+
+    with open(USER_PROFILE_PICTURE, "rb") as test_image:
+        files = {
+            "operations": (None, operations),
+            "map": (None, map_data),
+            "0": (USER_PROFILE_PICTURE, test_image, "image/jpeg"),
+        }
+
+        response = client.post(
+            "/graphql/",
+            files=files,
+            headers={"Authorization": f"Bearer {ACCESS_TOKEN}"},
+        )
+
     assert response.status_code == 200
-    assert response.json()["data"]["updateUserProfile"]["ok"] is True
-    assert response.json()["data"]["updateUserProfile"]["userId"] is not None
+    response_data = response.json()
+    assert response_data["data"]["updateUserProfile"]["ok"] is True
+    assert response_data["data"]["updateUserProfile"]["userId"] > 0
 
-
-
-import json
-from pathlib import Path
 
 def test_file_upload(client):
     # Path to the file you want to upload
-    file_path = "tests/test_image.png"
-    
+    file_path = "tests/imgs/test_image.png"
+
     # Ensure the file exists before running the test
     assert Path(file_path).exists()
 
     # Prepare the GraphQL mutation and variables
-    operations = json.dumps({
-        "query": """
+    operations = json.dumps(
+        {
+            "query": """
         mutation($file: Upload!) {
             fileUpload(file: $file) {
                 ok
@@ -124,27 +138,23 @@ def test_file_upload(client):
             }
         }
         """,
-        "variables": {"file": None}  # Placeholder for the file
-    })
+            "variables": {"file": None},  # Placeholder for the file
+        }
+    )
 
     # Prepare the map to indicate where the file goes
-    map_data = json.dumps({
-        "0": ["variables.file"]  # Map the file to the variable
-    })
+    map_data = json.dumps({"0": ["variables.file"]})  # Map the file to the variable
 
     # Simulate image upload using `files` for multipart/form-data
-    with open(file_path, 'rb') as test_image:
+    with open(file_path, "rb") as test_image:
         files = {
             "operations": (None, operations),
             "map": (None, map_data),
-            "0": (file_path, test_image, "image/png")  # Include the file directly
+            "0": (file_path, test_image, "image/png"),  # Include the file directly
         }
 
         # Send the request
         response = client.post("/graphql/", files=files)
-
-    # Print the response data for debugging
-    print("Response:", response.json())
 
     # Assert that the request was successful and the file was uploaded
     assert response.status_code == 200
