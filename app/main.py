@@ -1,14 +1,18 @@
+# Description: Main file for FastAPI app with GraphQL
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+# custom imports
 from app.db_configuration import get_db, init_db
 from app.graphql import schema
-
-import app.celery_worker as cw
+from app.utils import logger
+# import app.celery_worker as cw
 
 
 @asynccontextmanager
@@ -36,6 +40,21 @@ app.add_middleware(
 )
 
 
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # Create the uploads directory if it doesn't exist
+
+@app.post("/uploadfile/")
+async def create_upload_file(file: UploadFile):
+    try:
+        file_location = UPLOAD_DIR / file.filename
+        # Save the file with a unique name to avoid collisions
+        with open(file_location, "wb") as f:
+            f.write(await file.read())
+        return {"filename": file.filename, "filepath": str(file_location)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+
 # Add the GraphQL route to FastAPI with dependency injection for database session
 app.mount(
     "/graphql",
@@ -49,15 +68,15 @@ app.mount(
     ),
 )
 
-
-@app.get("/test")
-async def test(a: int, b: int):
-    print("a:", a)
-    print("b:", b)
-    task = cw.task_example.delay(a, b)
-    return JSONResponse(
-        {"Result": task.get(), "Task ID": task.id, "Task Status": task.status}
-    )
+# CELERY ROUTE
+# @app.get("/test")
+# async def test(a: int, b: int):
+#     print("a:", a)
+#     print("b:", b)
+#     task = cw.task_example.delay(a, b)
+#     return JSONResponse(
+#         {"Result": task.get(), "Task ID": task.id, "Task Status": task.status}
+#     )
 
 
 # Example root route

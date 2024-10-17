@@ -5,6 +5,7 @@ from .jwt_utils import create_access_token, decode_access_token, generate_access
 from .image_utils import compress_image, convert_to_webp
 # from .video_utils import compress_video, convert_to_webm
 from .file_upload import handle_file_upload
+from .logger import logger
 
 __all__ = [
     "hash_password",
@@ -15,4 +16,9 @@ __all__ = [
     "generate_access_token",
     "check_auth",
     "compress_image",
+    "convert_to_webp",
+    # "compress_video",
+    # "convert_to_webm",
+    "handle_file_upload",
+    "logger",
 ]

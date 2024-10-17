@@ -1,6 +1,12 @@
+from pathlib import Path
 import pytest
+from httpx import AsyncClient
+from fastapi.testclient import TestClient
 import os
 import json
+import io
+from app.main import app  # Import your FastAPI app
+
 
 ROLE_NAME = "Admin"
 ROLE_DESCRIPTION = "Administrator role with full permissions"
@@ -62,50 +68,81 @@ def test_login(client):
     ACCESS_TOKEN = response.json()["data"]["login"]["accessToken"]
 
 
-import json
-import pytest
+# def test_file_upload(client):
+#     # Path to the file you want to upload
+#     file_path = "tests/test_image.png"
 
-def test_file_upload(client):
-    # Path to the file you want to upload
-    file_path = "tests/test_image.png"
+#     # Simulate image upload
+#     with open(file_path, 'rb') as test_image:
+#         # Prepare the GraphQL mutation and variables
+#         operations = json.dumps({
+#             "query": """
+#             mutation($file: Upload!) {
+#                 myUpload(file: $file) {
+#                     ok
+#                 }
+#             }
+#             """,
+#             "variables": {"file": None}  # Placeholder for the file
+#         })
 
-    # Simulate image upload
-    with open(file_path, 'rb') as test_image:
-        # Prepare the GraphQL mutation and variables
-        operations = json.dumps({
-            "query": """
-            mutation($file: Upload!) {
-                myUpload(file: $file) {
-                    ok
-                }
-            }
-            """,
-            "variables": {"file": None}  # Placeholder for the file
-        })
+#         # Prepare the map to indicate where the file goes
+#         map_data = json.dumps({
+#             "0": ["variables.file"]  # Map the file to the variable
+#         })
 
-        # Prepare the map to indicate where the file goes
-        map_data = json.dumps({
-            "0": ["variables.file"]  # Map the file to the variable
-        })
+#         # Prepare the multipart/form-data request
+#         data = {
+#             "operations": operations,
+#             "map": map_data,
+#             "0": (file_path, test_image, "image/png")  # Include the file directly
+#         }
 
-        # Prepare the multipart/form-data request
-        data = {
-            "operations": operations,
-            "map": map_data,
-            "0": (file_path, test_image, "image/png")  # Include the file directly
-        }
+#         # Correctly define headers as a dictionary
+#         headers = {"Content-Type": "multipart/form-data"}
 
-        # Correctly define headers as a dictionary
-        headers = {"Content-Type": "multipart/form-data"}
+#         # Send the request
+#         response = client.post("/graphql/", data=data , headers=headers)
 
-        # Send the request
-        response = client.post("/graphql/", data=data , headers=headers)
+#     print("Response:", response.json())
 
-    print("Response:", response.json())
+#     assert response.status_code == 200
+#     response_data = response.json()
+#     assert response_data["data"]["myUpload"]["ok"] is True
 
-    assert response.status_code == 200
-    response_data = response.json()
-    assert response_data["data"]["myUpload"]["ok"] is True
+
+# @pytest.mark.asyncio
+# async def test_file_upload_async(client):
+#     # Prepare a fake file to upload
+#     file_content = b'This is a test file.'
+#     fake_file = io.BytesIO(file_content)
+#     fake_file.name = 'test_file.txt'  # Set the name of the file
+
+#     # Prepare the GraphQL mutation for file upload
+#     query = '''
+#         mutation($file: Upload!) {
+#             fileUpload(file: $file) {
+#                 ok
+#             }
+#         }
+#     '''
+    
+#     # Use a multipart request to upload the file
+#     response = client.post(
+#         '/graphql',  # Replace with your GraphQL endpoint
+#         data={
+#             'operations': '{"query": "%s", "variables": {"file": null}}' % query,
+#             'map': '{"0": ["variables.file"]}',
+#             '0': (fake_file.name, fake_file, 'text/plain'),  # Add the fake file here
+#         },
+#     )
+
+#     print("Response:", response.json())
+
+#     # Check if the response is successful
+#     assert response.status_code == 200
+#     result = response.json()
+#     assert result['data']['fileUpload']['ok'] is True
 
 
 # def test_update_user_profile(client):
@@ -177,3 +214,62 @@ def test_file_upload(client):
 #     assert response.status_code == 200
 #     assert "data" in response.json()
 #     assert len(response.json()["data"]["users"]) > 0  # Adjust according to your schema
+
+
+# @pytest.mark.asyncio
+# async def test_file_upload(setup_db):  # Ensure setup_db is executed before the test
+#     # Prepare the file to upload
+#     file_path = "tests/test_file.txt"
+#     with open(file_path, "w") as f:
+#         f.write("This is a test file.")
+
+#     # Prepare the multipart data
+#     files = {
+#         "file": ("test_file.txt", open(file_path, "rb"), "text/plain"),
+#     }
+
+#     # Construct the GraphQL mutation query
+#     mutation = """
+#     mutation uploadFile($file: Upload!) {
+#         uploadFile(file: $file) {
+#             ok
+#             filename
+#             filepath
+#         }
+#     }
+#     """
+
+#     # Create a dictionary for the operations
+#     operations = {
+#         "query": mutation,
+#         "variables": {"file": None},
+#     }
+
+#     # Map the file input
+#     map_ = {
+#         "0": ["variables.file"],
+#     }
+
+#     # Use AsyncClient for async operations
+#     async with AsyncClient(app=app, base_url="http://test") as async_client:
+#         # Send the request
+#         response = await async_client.post(
+#             "/graphql/",
+#             data={
+#                 "operations": json.dumps(operations),
+#                 "map": json.dumps(map_),
+#                 **files,  # Include the files in the request
+#             },
+#         )
+
+#     print("Response:", response.json())
+#     # Check response status code
+#     assert response.status_code == 200
+
+#     # Check if the mutation was successful
+#     response_data = response.json()
+#     assert response_data["data"]["uploadFile"]["ok"] is True
+#     assert response_data["data"]["uploadFile"]["filename"] == "test_file.txt"
+
+#     # Clean up the test file
+#     os.remove(file_path)

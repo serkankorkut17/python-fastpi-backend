@@ -1,5 +1,5 @@
 import graphene
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from graphene_file_upload.scalars import Upload
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -8,6 +8,7 @@ import jwt
 import os
 import shutil
 import json
+from pathlib import Path
 
 from app.utils import (
     hash_password,
@@ -18,29 +19,7 @@ from app.utils import (
 )
 import app.models as models
 import app.crud as crud
-
-import logging
-
-# Create a logs directory if it doesn't exist
-log_directory = "logs"
-os.makedirs(log_directory, exist_ok=True)
-
-# Define the log file path
-log_file = os.path.join(log_directory, "app.log")
-# delete the log file if it exists
-if os.path.exists(log_file):
-    os.remove(log_file)
-
-
-# Configure logging to output to a file
-logging.basicConfig(
-    level=logging.INFO,  # Set log level to INFO or DEBUG for more detailed output
-    format="%(asctime)s [%(levelname)s] %(message)s",  # Format for log messages
-    handlers=[
-        logging.FileHandler(log_file),  # Output logs to the specified file
-        logging.StreamHandler(),  # You can keep this to also output to console, or remove it
-    ],
-)
+from app.utils import logger
 
 
 # GraphQL Mutations
@@ -56,11 +35,11 @@ class Login(graphene.Mutation):
     async def mutate(root, info, username, password):
         db: Session = info.context["db"]
 
-        # logging.info(f"Request headers: {info.context['request'].headers}")
-        # logging.info(f"Request method: {info.context['request'].method}")
+        # logger.info(f"Request headers: {info.context['request'].headers}")
+        # logger.info(f"Request method: {info.context['request'].method}")
 
         # request = info.context["request"]
-        # logging.info(f"Request: {dir(request)}")
+        # logger.info(f"Request: {dir(request)}")
 
         # # Read and log request body as JSON
         # req_body = await request.body()
@@ -69,15 +48,15 @@ class Login(graphene.Mutation):
         # body_str = req_body.decode("utf-8") if isinstance(req_body, bytes) else str(req_body)
         
         # # Log the request body
-        # logging.info(f"Request body: {body_str}")
+        # logger.info(f"Request body: {body_str}")
         # # Log request details
-        # logging.info(f"Request headers: {request.headers}")
-        # logging.info(f"Request method: {request.method}")
-        # logging.info(f"Request URL: {request.url}")
-        # logging.info(f"Request query parameters: {request.query_params}")
-        # logging.info(f"Request path parameters: {request.path_params}")
-        # logging.info(f"Request client: {request.client}")
-        # logging.info(f"Request cookies: {request.cookies}")
+        # logger.info(f"Request headers: {request.headers}")
+        # logger.info(f"Request method: {request.method}")
+        # logger.info(f"Request URL: {request.url}")
+        # logger.info(f"Request query parameters: {request.query_params}")
+        # logger.info(f"Request path parameters: {request.path_params}")
+        # logger.info(f"Request client: {request.client}")
+        # logger.info(f"Request cookies: {request.cookies}")
 
 
         # Authenticate the user
@@ -277,11 +256,11 @@ class MyUpload(graphene.Mutation):
     @staticmethod
     async def mutate(root, info, file):
 
-        logging.info(f"Request headers: {info.context['request'].headers}")
-        logging.info(f"Request method: {info.context['request'].method}")
+        logger.info(f"Request headers: {info.context['request'].headers}")
+        logger.info(f"Request method: {info.context['request'].method}")
 
         request = info.context["request"]
-        logging.info(f"Request: {dir(request)}")
+        logger.info(f"Request: {dir(request)}")
 
         # Read and log request body as JSON
         req_body = await request.body()
@@ -290,15 +269,15 @@ class MyUpload(graphene.Mutation):
         body_str = req_body.decode("utf-8") if isinstance(req_body, bytes) else str(req_body)
         
         # Log the request body
-        logging.info(f"Request body: {body_str}")
+        logger.info(f"Request body: {body_str}")
         # Log request details
-        logging.info(f"Request headers: {request.headers}")
-        logging.info(f"Request method: {request.method}")
-        logging.info(f"Request URL: {request.url}")
-        logging.info(f"Request query parameters: {request.query_params}")
-        logging.info(f"Request path parameters: {request.path_params}")
-        logging.info(f"Request client: {request.client}")
-        logging.info(f"Request cookies: {request.cookies}")
+        logger.info(f"Request headers: {request.headers}")
+        logger.info(f"Request method: {request.method}")
+        logger.info(f"Request URL: {request.url}")
+        logger.info(f"Request query parameters: {request.query_params}")
+        logger.info(f"Request path parameters: {request.path_params}")
+        logger.info(f"Request client: {request.client}")
+        logger.info(f"Request cookies: {request.cookies}")
 
         # Define the upload directory
         upload_folder = "uploads"
@@ -327,6 +306,44 @@ class MyUpload(graphene.Mutation):
             return MyUpload(ok=True)
         else:
             return MyUpload(ok=False)
+        
+
+# class FileUploadMutation(graphene.Mutation):
+#     class Arguments:
+#         file = Upload(required=True)
+
+#     ok = graphene.Boolean()
+#     filename = graphene.String()
+#     filepath = graphene.String()
+
+#     async def mutate(self, info, file):
+#         upload_dir = Path("uploads")
+#         upload_dir.mkdir(parents=True, exist_ok=True)
+        
+#         file_location = upload_dir / file.filename
+#         with open(file_location, "wb") as f:
+#             f.write(await file.read())
+        
+#         return FileUploadMutation(ok=True, filename=file.filename, filepath=str(file_location))
+    
+class FileUploadMutation(graphene.Mutation):
+    class Arguments:
+        file = Upload(required=True)
+
+    ok = graphene.Boolean()
+    filename = graphene.String()
+    filepath = graphene.String()
+
+    async def mutate(self, info, file: UploadFile):
+        try:
+            file_location = f"uploads/{file.filename}"  # Specify your upload directory
+            with open(file_location, "wb") as f:
+                f.write(await file.read())  # Save the uploaded file
+            return FileUploadMutation(ok=True, filename=file.filename, filepath=file_location)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+
 
 
 # Mutation class to add all mutations
@@ -336,4 +353,5 @@ class Mutation(graphene.ObjectType):
     login = Login.Field()
     update_user_profile = UpdateUserProfile.Field()
     my_upload = MyUpload.Field()
+    file_upload = FileUploadMutation.Field()
     create_post = CreatePost.Field()
