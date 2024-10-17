@@ -275,7 +275,31 @@ class MyUpload(graphene.Mutation):
     ok = graphene.Boolean()
 
     @staticmethod
-    def mutate(root, info, file):
+    async def mutate(root, info, file):
+
+        logging.info(f"Request headers: {info.context['request'].headers}")
+        logging.info(f"Request method: {info.context['request'].method}")
+
+        request = info.context["request"]
+        logging.info(f"Request: {dir(request)}")
+
+        # Read and log request body as JSON
+        req_body = await request.body()
+        
+        # Convert the request body to a string for printing
+        body_str = req_body.decode("utf-8") if isinstance(req_body, bytes) else str(req_body)
+        
+        # Log the request body
+        logging.info(f"Request body: {body_str}")
+        # Log request details
+        logging.info(f"Request headers: {request.headers}")
+        logging.info(f"Request method: {request.method}")
+        logging.info(f"Request URL: {request.url}")
+        logging.info(f"Request query parameters: {request.query_params}")
+        logging.info(f"Request path parameters: {request.path_params}")
+        logging.info(f"Request client: {request.client}")
+        logging.info(f"Request cookies: {request.cookies}")
+
         # Define the upload directory
         upload_folder = "uploads"
         upload_directory = os.path.join(

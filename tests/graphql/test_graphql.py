@@ -62,39 +62,50 @@ def test_login(client):
     ACCESS_TOKEN = response.json()["data"]["login"]["accessToken"]
 
 
-# def test_file_upload(client):
-#     # Path to the file you want to upload
-#     file_path = "tests/test_image.png"
+import json
+import pytest
 
-#     # Simulate image upload
-#     with open(file_path, 'rb') as test_image:
-#         response = client.post(
-#             "/graphql/",  # Your actual GraphQL endpoint
-#             data={
-#                 "operations": json.dumps({
-#                     "query": """
-#                     mutation($file: Upload!) {
-#                         myUpload(file: $file) {
-#                             ok
-#                         }
-#                     }
-#                     """,
-#                     "variables": {"file": None}  # File will be inserted here via map
-#                 }),
-#                 "map": json.dumps({
-#                     "0": ["variables.file"]  # The file will be mapped to this variable
-#                 }),
-#             },
-#             files={
-#                 "0": ("test_image.png", test_image, "image/png"),  # Image file mapped to "0"
-#             },
-#         )
-    
-#     print("Response:", response.json())
+def test_file_upload(client):
+    # Path to the file you want to upload
+    file_path = "tests/test_image.png"
 
-#     assert response.status_code == 200
-#     response_data = response.json()
-#     assert response_data["data"]["myUpload"]["ok"] is True
+    # Simulate image upload
+    with open(file_path, 'rb') as test_image:
+        # Prepare the GraphQL mutation and variables
+        operations = json.dumps({
+            "query": """
+            mutation($file: Upload!) {
+                myUpload(file: $file) {
+                    ok
+                }
+            }
+            """,
+            "variables": {"file": None}  # Placeholder for the file
+        })
+
+        # Prepare the map to indicate where the file goes
+        map_data = json.dumps({
+            "0": ["variables.file"]  # Map the file to the variable
+        })
+
+        # Prepare the multipart/form-data request
+        data = {
+            "operations": operations,
+            "map": map_data,
+            "0": (file_path, test_image, "image/png")  # Include the file directly
+        }
+
+        # Correctly define headers as a dictionary
+        headers = {"Content-Type": "multipart/form-data"}
+
+        # Send the request
+        response = client.post("/graphql/", data=data , headers=headers)
+
+    print("Response:", response.json())
+
+    assert response.status_code == 200
+    response_data = response.json()
+    assert response_data["data"]["myUpload"]["ok"] is True
 
 
 # def test_update_user_profile(client):
