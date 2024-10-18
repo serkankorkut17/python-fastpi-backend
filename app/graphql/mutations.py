@@ -18,6 +18,7 @@ from app.utils import (
     handle_file_upload,
 )
 import app.models as models
+from app.models import PostVisibility, PostType, MediaType
 import app.crud as crud
 from app.utils import logger
 
@@ -173,7 +174,7 @@ class UpdateUserProfile(graphene.Mutation):
             raise HTTPException(status_code=404, detail="User profile not found")
 
         # Update profile picture if provided
-        profile_picture_path = (
+        profile_picture_path, content_type = (
             handle_file_upload(profile_photo, "profile_pictures")
             if profile_photo
             else None
@@ -209,14 +210,17 @@ class UpdateUserProfile(graphene.Mutation):
 
 class CreatePost(graphene.Mutation):
     class Arguments:
-        title = graphene.String(required=True)
+        # title = graphene.String(required=True)
         content = graphene.String(required=True)
+        visibility = graphene.String(required=False)
+        post_type = graphene.String(required=False)
+        media_files = graphene.List(Upload, required=False)
 
     ok = graphene.Boolean()
     post_id = graphene.Int()
 
     @staticmethod
-    def mutate(root, info, title, content):
+    def mutate(root, info, content, visibility=None, post_type=None, media_files=None):
         db: Session = info.context["db"]
 
         # Get the Authorization header from the request
@@ -234,15 +238,62 @@ class CreatePost(graphene.Mutation):
             raise HTTPException(
                 status_code=401, detail="User not found or invalid token"
             )
+        
+        # if visibility is not provided, set it to public by default
+        # if visibility is "public" or "private" or "followers", set it to the provided value
+        # if visibility is not one of the above, set it to public by default
+        if visibility:
+            visibility = visibility.lower()
+            if visibility not in ["public", "private", "followers"]:
+                visibility = PostVisibility.PUBLIC
+            else:
+                visibility = PostVisibility[visibility.upper()]
+        # if post_type is not provided, set it to post by default
+        # if post_type is "post" or "story", set it to the provided value
+        # if post_type is not one of the above, set it to post by default
+        if post_type:
+            post_type = post_type.lower()
+            if post_type not in ["post", "share", "promotion"]:
+                post_type = PostType.POST
+            else:
+                post_type = PostType[post_type.upper()]
 
         # Create new post
-        db_post = models.Post(title=title, content=content, user_id=user.id)
+        db_post = models.Post(
+            content=content,
+            visibility=visibility,
+            post_type=post_type,
+            user_id=user.id,
+        )
 
         try:
             post_id = crud.save_to_db(db, db_post)
+
+            # Handle media if any URLs are provided
+            if media_files:
+                for url in media_files:
+                    # save media to uploads
+                    media_path, media_type = handle_file_upload(url, "posts")
+                    logger.info(f"Media path: {media_path}, Media type: {media_type}")
+                    if media_type.startswith("image"):
+                        media_type = MediaType.IMAGE
+                    elif media_type.startswith("video"):
+                        media_type = MediaType.VIDEO
+                    elif media_type.startswith("audio"):
+                        media_type = MediaType.AUDIO
+                    elif media_type.startswith("document"):
+                        media_type = MediaType.DOCUMENT
+                    db_media = models.Media(
+                        file_url=media_path, media_type=media_type, post_id=post_id
+                    )
+                    crud.save_to_db(db, db_media)
+            logger.info(
+                f"CreatePost: New post created by user {user.username} with post_id {post_id}"
+            )
             return CreatePost(ok=True, post_id=post_id)
         except Exception as e:
             db.rollback()
+            logger.error(f"CreatePost: Error creating post - {str(e)}")
             raise HTTPException(
                 status_code=400, detail="Error creating post: " + str(e)
             )
@@ -266,7 +317,9 @@ class FileUpload(graphene.Mutation):
             file_location = f"uploads/{filename}"  # Specify your upload directory
             with open(file_location, "wb") as f:
                 f.write(await file.read())  # Save the uploaded file
-            logger.info(f"[{FileUpload.__name__}] File uploaded successfully: {filename}")
+            logger.info(
+                f"[{FileUpload.__name__}] File uploaded successfully: {filename}"
+            )
             return FileUpload(ok=True, filename=filename, filepath=file_location)
         except Exception as e:
             logger.error(f"[{FileUpload.__name__}] Error uploading file: {str(e)}")

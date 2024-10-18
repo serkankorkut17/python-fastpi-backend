@@ -55,5 +55,5 @@ def handle_file_upload(uploaded_file, upload_folder):
 
     # Remove the temporary file after processing
     os.remove(temp_file_path)
-    
-    return output_file_path  # Return the path to the processed file
+    # return output file path and media type
+    return output_file_path, uploaded_file.content_type

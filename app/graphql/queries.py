@@ -3,7 +3,7 @@ import graphene
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from app.graphql.schemas import UserModel, RoleModel, UserProfileModel
+from app.graphql.schemas import UserModel, RoleModel, UserProfileModel, PostModel, CommentModel, MediaModel
 import app.models as models
 import app.crud as crud
 
@@ -16,6 +16,8 @@ class Query(graphene.ObjectType):
     role_by_id = graphene.Field(RoleModel, role_id=graphene.Int(required=True))
 
     user_profile = graphene.Field(UserProfileModel, user_id=graphene.Int(required=True))
+
+    post = graphene.Field(PostModel, post_id=graphene.Int(required=True))
 
     def resolve_all_users(self, info):
         db: Session = info.context["db"]
@@ -52,3 +54,10 @@ class Query(graphene.ObjectType):
         if not user_profile:
             raise HTTPException(status_code=404, detail="User not found")
         return user_profile
+    
+    def resolve_post(self, info, post_id):
+        db: Session = info.context["db"]
+        post = crud.find_post_by_id(db, post_id)
+        if not post:
+            raise HTTPException(status_code=404, detail="Post not found")
+        return post

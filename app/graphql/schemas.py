@@ -20,7 +20,7 @@ class UserProfileModel(SQLAlchemyObjectType):
 class PostModel(SQLAlchemyObjectType):
     class Meta:
         model = Post
-        exclude_fields = ('user_id',)  # Exclude sensitive fields
+        # exclude_fields = ('user_id',)  # Exclude sensitive fields
 
 class CommentModel(SQLAlchemyObjectType):
     class Meta:

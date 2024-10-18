@@ -24,6 +24,10 @@ def find_user_profile(db: Session, user_id: int):
     user_profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == user_id).first()
     return user_profile
 
+def find_post_by_id(db: Session, post_id: int):
+    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+    return post
+
 def save_to_db(db: Session, model):
     db.add(model)
     db.commit()

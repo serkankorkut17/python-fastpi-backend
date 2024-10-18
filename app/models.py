@@ -5,10 +5,10 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     UniqueConstraint,
-    Enum,
 )
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy import Enum as SQLAlchemyEnum
 import enum
 
 # from datetime import datetime
@@ -17,22 +17,22 @@ from app.db_configuration import Base
 
 
 # Enum for post visibility
+# Define the Python Enum (shared between SQLAlchemy and GraphQL)
 class PostVisibility(enum.Enum):
-    public = "public"
-    private = "private"
-    friends = "friends"
+    PUBLIC = "public"
+    PRIVATE = "private"
+    FOLLOWERS = "followers"
 
-
-# Enum for post types
 class PostType(enum.Enum):
-    post = "post"
-    share = "share"
-    promotion = "promotion"
-
+    POST = "post"
+    SHARE = "share"
+    PROMOTION = "promotion"
 
 class MediaType(enum.Enum):
-    image = "image"
-    video = "video"
+    IMAGE = "image"
+    VIDEO = "video"
+    AUDIO = "audio"
+    DOCUMENT = "document"
 
 
 class Role(Base):
@@ -100,7 +100,7 @@ class Post(Base):
     __tablename__ = "posts"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(100), nullable=False)
+    # title = Column(String(100), nullable=False)
     content = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -109,12 +109,8 @@ class Post(Base):
     )
 
     likes = Column(Integer, default=0)  # Like count
-    visibility = Column(
-        Enum(PostVisibility), default=PostVisibility.public
-    )  # Visibility control
-    post_type = Column(
-        Enum(PostType), default=PostType.post
-    )  # Post type (normal, share, promotion)
+    visibility = Column(SQLAlchemyEnum(PostVisibility), default=PostVisibility.PUBLIC)
+    post_type = Column(SQLAlchemyEnum(PostType), default=PostType.POST)
     parent_post_id = Column(
         Integer, ForeignKey("posts.id"), nullable=True
     )  # For shared posts
@@ -128,7 +124,7 @@ class Post(Base):
     )  # Relationship with media
 
     def __repr__(self):
-        return f"<Post(title={self.title}, user_id={self.user_id}, visibility={self.visibility})>"
+        return f"<Post(content={self.content}, user_id={self.user_id}, visibility={self.visibility})>"
 
 
 class Comment(Base):
@@ -168,7 +164,7 @@ class Media(Base):
     id = Column(Integer, primary_key=True, index=True)
     file_url = Column(String, nullable=False)  # URL or path to the media file
     media_type = Column(
-        Enum(MediaType), nullable=False
+        SQLAlchemyEnum(MediaType), nullable=False
     )  # Type of media (image, video, etc.)
     post_id = Column(
         Integer, ForeignKey("posts.id"), nullable=False
