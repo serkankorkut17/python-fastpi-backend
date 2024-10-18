@@ -23,7 +23,7 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 def setup_db():
     Base.metadata.create_all(bind=engine)  # Create tables before tests
     yield
-    # Base.metadata.drop_all(bind=engine)  # Drop tables after tests
+    Base.metadata.drop_all(bind=engine)  # Drop tables after tests
 
 
 @pytest.fixture(scope="module")

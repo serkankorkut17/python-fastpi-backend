@@ -20,6 +20,10 @@ def find_user_by_username(db: Session, username: str):
 def find_all_users(db: Session):
     return db.query(models.User).all()
 
+def find_user_profile(db: Session, user_id: int):
+    user_profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == user_id).first()
+    return user_profile
+
 def save_to_db(db: Session, model):
     db.add(model)
     db.commit()
