@@ -10,6 +10,7 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from sqlalchemy import Enum as SQLAlchemyEnum
 import enum
+import graphene
 
 # from datetime import datetime
 
@@ -23,16 +24,22 @@ class PostVisibility(enum.Enum):
     PRIVATE = "private"
     FOLLOWERS = "followers"
 
+# PostVisibility = graphene.Enum.from_enum(PostVisibilityEnum)
+
 class PostType(enum.Enum):
     POST = "post"
     SHARE = "share"
     PROMOTION = "promotion"
+
+# PostType = graphene.Enum.from_enum(PostTypeEnum)
 
 class MediaType(enum.Enum):
     IMAGE = "image"
     VIDEO = "video"
     AUDIO = "audio"
     DOCUMENT = "document"
+
+# MediaType = graphene.Enum.from_enum(MediaTypeEnum)
 
 
 class Role(Base):
@@ -109,8 +116,8 @@ class Post(Base):
     )
 
     likes = Column(Integer, default=0)  # Like count
-    visibility = Column(SQLAlchemyEnum(PostVisibility), default=PostVisibility.PUBLIC)
-    post_type = Column(SQLAlchemyEnum(PostType), default=PostType.POST)
+    visibility = Column(SQLAlchemyEnum(PostVisibility), values_callable=lambda x: [e.value for e in x])
+    post_type = Column(SQLAlchemyEnum(PostType), values_callable=lambda x: [e.value for e in x])
     parent_post_id = Column(
         Integer, ForeignKey("posts.id"), nullable=True
     )  # For shared posts
@@ -164,7 +171,7 @@ class Media(Base):
     id = Column(Integer, primary_key=True, index=True)
     file_url = Column(String, nullable=False)  # URL or path to the media file
     media_type = Column(
-        SQLAlchemyEnum(MediaType), nullable=False
+        SQLAlchemyEnum(MediaType), values_callable=lambda x: [e.value for e in x]
     )  # Type of media (image, video, etc.)
     post_id = Column(
         Integer, ForeignKey("posts.id"), nullable=False

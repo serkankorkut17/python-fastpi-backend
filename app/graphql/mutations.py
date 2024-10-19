@@ -223,6 +223,8 @@ class CreatePost(graphene.Mutation):
     def mutate(root, info, content, visibility=None, post_type=None, media_files=None):
         db: Session = info.context["db"]
 
+        logger.info(f"CreatePost: Content: {content}, Visibility: {visibility}, Post Type: {post_type}")
+
         # Get the Authorization header from the request
         request = info.context["request"]
         authorization = request.headers.get("Authorization")
@@ -243,8 +245,8 @@ class CreatePost(graphene.Mutation):
         # if visibility is "public" or "private" or "followers", set it to the provided value
         # if visibility is not one of the above, set it to public by default
         if visibility:
-            visibility = visibility.lower()
-            if visibility not in ["public", "private", "followers"]:
+            visibility = visibility.upper()
+            if visibility not in ["PUBLIC", "PRIVATE", "FOLLOWERS"]:
                 visibility = PostVisibility.PUBLIC
             else:
                 visibility = PostVisibility[visibility.upper()]
@@ -252,8 +254,8 @@ class CreatePost(graphene.Mutation):
         # if post_type is "post" or "story", set it to the provided value
         # if post_type is not one of the above, set it to post by default
         if post_type:
-            post_type = post_type.lower()
-            if post_type not in ["post", "share", "promotion"]:
+            post_type = post_type.upper()
+            if post_type not in ["POST", "SHARE", "PROMOTION"]:
                 post_type = PostType.POST
             else:
                 post_type = PostType[post_type.upper()]
@@ -268,6 +270,10 @@ class CreatePost(graphene.Mutation):
 
         try:
             post_id = crud.save_to_db(db, db_post)
+
+            # log media files
+            logger.info(f"Media files: {media_files}")
+            
 
             # Handle media if any URLs are provided
             if media_files:
