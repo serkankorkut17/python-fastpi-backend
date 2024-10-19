@@ -1,6 +1,4 @@
 # USEFUL COMMANDS
-
----
 ---
 
 ## Activate venv
