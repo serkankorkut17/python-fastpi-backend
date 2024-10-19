@@ -1,30 +1,32 @@
-<!-- Activate venv -->
+# USEFUL COMMANDS
+
+### Activate venv
 python3 -m venv venv
 pip install -r requirements. txt
 source venv/bin/activate
 
-<!-- Generate requirements.txt -->
+### Generate requirements.txt
 pip freeze > requirements.txt 
 
-<!-- Run main.py -->
+### Run main.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-<!-- Docker Specific-->
+### Docker Specific
 docker-compose up
 docker-compose build
 docker-compose build --no-cache
 
-<!-- If not created -->
+### If not created
 alembic init alembic
 
-<!-- For migrations with docker-->
+### For migrations with docker
 docker-compose run app alembic revision --autogenerate -m "New Migration" 
 docker-compose run app alembic upgrade head
-<!-- For migrations -->
+### For migrations 
 alembic revision --autogenerate -m "comment"
 alembic upgrade head
 
-<!-- queries -->
+### Queries
 query User{
   userById(
     userId:1
@@ -44,7 +46,7 @@ query{ allPosts{ title } }
 
 query{ postById(postId:2){ id title content } }
 
-<!-- mutations -->
+### Mutations
 mutation CreateRole {
     createRole(name:"Admin", description:"Administrator role with full permissions") {
         ok,
@@ -74,8 +76,7 @@ mutation CreatePost {
     }
 }
 
-
-<!-- Notes -->
+### Notes
 Amazing tutorial.
 If you're coming here in 2023, here's a couple of things you need to know.
 1. graphql is no longer accessible through starlette, use from starlette_graphene3 import GraphQLApp
