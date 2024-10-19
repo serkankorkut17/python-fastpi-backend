@@ -33,9 +33,9 @@ TEST_MEDIA_FILES = []
 POST_ID = None
 
 TEST_MEDIA_FILES = [
-    "tests/imgs/test_1.jpeg",
-    "tests/imgs/test_2.jpeg",
-    "tests/imgs/test_3.jpeg",
+    "tests/imgs/test_post_1.jpeg",
+    "tests/imgs/test_post_2.jpg",
+    "tests/imgs/test_post_3.jpg",
 ]
 
 
