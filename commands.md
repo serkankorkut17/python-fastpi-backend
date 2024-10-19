@@ -1,7 +1,6 @@
 # USEFUL COMMANDS
----
 
-## Activate venv
+### Activate venv
 python3 -m venv venv
 <br>
 pip install -r requirements. txt
