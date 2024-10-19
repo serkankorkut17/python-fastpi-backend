@@ -44,6 +44,7 @@ docker-compose run app alembic upgrade head
 alembic revision --autogenerate -m "comment"
 <br>
 alembic upgrade head
+
 ---
 
 ### Queries
