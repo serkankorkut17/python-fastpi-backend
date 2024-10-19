@@ -387,12 +387,13 @@ class TestFileUpload:
         ],
     )
     def test_file_upload(self, client, file_path):
+        # Check if the file exists
         assert Path(file_path).exists()
 
         # Automatically guess the content type based on the file extension
         content_type, _ = mimetypes.guess_type(file_path)
         assert content_type is not None, "Unable to guess content type"
-
+        # Prepare the operations data
         operations = json.dumps(
             {
                 "query": """
@@ -407,16 +408,18 @@ class TestFileUpload:
                 "variables": {"file": None},
             }
         )
+        # Prepare the map data
         map_data = json.dumps({"0": ["variables.file"]})
-
+        # Prepare the files data
         with open(file_path, "rb") as test_image:
             files = {
                 "operations": (None, operations),
                 "map": (None, map_data),
                 "0": (file_path, test_image, content_type),
             }
-
+            # Send the request
             response = client.post("/graphql/", files=files)
+        # Check the response
         assert response.status_code == 200
         response_data = response.json()
         assert response_data["data"]["fileUpload"]["ok"] is True
@@ -448,6 +451,7 @@ class TestCreatePost:
         for media in POST.medias:
             assert Path(media.file_url).exists()
 
+        # Prepare the operations data
         operations = json.dumps(
             {
                 "query": """
@@ -466,24 +470,24 @@ class TestCreatePost:
                 },
             }
         )
-
+        # Prepare the map data
         map_data = json.dumps(
             {str(i): [f"variables.mediaFiles.{i}"] for i in range(len(POST.medias))}
         )
-
+        # Prepare the files data
         files = {}
         for i, media_file in enumerate(POST.medias):
             files[str(i)] = (str(media_file.file_url), open(media_file.file_url, "rb"), "image/jpeg")
 
         files["operations"] = (None, operations)
         files["map"] = (None, map_data)
-
+        # Send the request
         response = client.post(
             "/graphql/",
             files=files,
             headers={"Authorization": f"Bearer {POST.user.access_token}"},
         )
-
+        # Check the response
         assert response.status_code == 200
         response_data = response.json()
         logger.info(response_data)
@@ -514,9 +518,10 @@ class TestCreatePost:
             }}
         }}
         """
+        # Send the request
         response = client.post("/graphql/", json={"query": query})
+        # Check the response
         assert response.status_code == 200
-        logger.info(response.json())
         post_data = response.json()["data"]["post"]
         assert post_data["content"] == POST.content
         assert post_data["visibility"].lower() == POST.visibility.lower()

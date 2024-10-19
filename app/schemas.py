@@ -8,7 +8,7 @@ from enum import Enum
 class PostVisibilityEnum(str, Enum):
     public = "public"
     private = "private"
-    friends = "friends"
+    followers = "followers"
 
 
 class PostTypeEnum(str, Enum):
@@ -20,9 +20,12 @@ class PostTypeEnum(str, Enum):
 class MediaTypeEnum(str, Enum):
     image = "image"
     video = "video"
+    audio = "audio"
+    document = "document"
 
 
 # Pydantic schemas
+
 
 # User schema
 class UserSchema(BaseModel):

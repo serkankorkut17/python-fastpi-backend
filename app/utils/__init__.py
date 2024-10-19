@@ -1,5 +1,4 @@
 # app/utils/__init__.py
-
 from .password_utils import hash_password, check_password, authenticate_user
 from .jwt_utils import create_access_token, decode_access_token, generate_access_token, check_auth
 from .image_utils import compress_image, convert_to_webp
@@ -7,6 +6,7 @@ from .image_utils import compress_image, convert_to_webp
 from .file_upload import handle_file_upload
 from .logger import logger
 
+# Export the utilities
 __all__ = [
     "hash_password",
     "check_password",

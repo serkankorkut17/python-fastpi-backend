@@ -1,7 +1,5 @@
 import os
 from sqlalchemy import create_engine
-
-# from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from dotenv import load_dotenv
@@ -12,7 +10,6 @@ load_dotenv(".env")
 # Fetch the database URL from environment variables
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
-
 IS_TESTING = os.getenv("TESTING")
 
 

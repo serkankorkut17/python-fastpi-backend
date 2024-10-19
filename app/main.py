@@ -8,13 +8,14 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-# custom imports
+# Custom imports
 from app.db_configuration import get_db, init_db
 from app.graphql import schema
-from app.utils import logger
+
 # import app.celery_worker as cw
 
 
+# Lifespan context manager for database session
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -34,17 +35,19 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins
-    allow_credentials=True,
+    allow_credentials=True,  # Allow cookies
     allow_methods=["*"],  # Allow all methods (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],  # Allow all headers
 )
 
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)  # Create the uploads directory if it doesn't exist
-
+# Upload file route
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile):
+    UPLOAD_DIR = Path("uploads")
+    UPLOAD_DIR.mkdir(
+        parents=True, exist_ok=True
+    )  # Create the uploads directory if it doesn't exist
     try:
         file_location = UPLOAD_DIR / file.filename
         # Save the file with a unique name to avoid collisions
@@ -64,11 +67,11 @@ app.mount(
             "request": request,  # Include the request object
             "db": next(get_db()),  # Include the db session
         },
-        on_get=make_graphiql_handler(),
+        on_get=make_graphiql_handler(),  # Enable GraphiQL on GET requests
     ),
 )
 
-# CELERY ROUTE
+# CELERY EXAMPLE ROUTE
 # @app.get("/test")
 # async def test(a: int, b: int):
 #     print("a:", a)
@@ -79,10 +82,10 @@ app.mount(
 #     )
 
 
-# Example root route
+# Root route
 @app.get("/")
 def root():
-    return {"message": "Welcome to FastAPI with GraphQL for Users and Roles"}
+    return {"message": "Welcome to the FastAPI app with GraphQL!"}
 
 
 # Entry point for running the app
