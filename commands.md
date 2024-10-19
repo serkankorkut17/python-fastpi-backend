@@ -2,7 +2,9 @@
 
 ### Activate venv
 python3 -m venv venv
+<br>
 pip install -r requirements. txt
+<br>
 source venv/bin/activate
 
 ### Generate requirements.txt
@@ -13,17 +15,23 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### Docker Specific
 docker-compose up
+<br>
 docker-compose build
+<br>
 docker-compose build --no-cache
 
 ### If not created
 alembic init alembic
 
 ### For migrations with docker
-docker-compose run app alembic revision --autogenerate -m "New Migration" 
+docker-compose run app alembic revision --autogenerate -m "New Migration"
+<br>
 docker-compose run app alembic upgrade head
+<br>
+
 ### For migrations 
 alembic revision --autogenerate -m "comment"
+<br>
 alembic upgrade head
 
 ### Queries
