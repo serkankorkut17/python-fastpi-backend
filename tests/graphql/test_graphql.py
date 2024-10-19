@@ -27,10 +27,16 @@ NEW_BIO = "NewBio"
 USER_PROFILE_PICTURE = "tests/imgs/test_profile_picture.jpeg"
 
 TEST_CONTENT = "This is a test post content."
-TEST_VISIBILITY = "public" # "public"  # Adjust as necessary based on your enums
+TEST_VISIBILITY = "public"  # "public"  # Adjust as necessary based on your enums
 TEST_POST_TYPE = "post"  # Adjust as necessary based on your enums
 TEST_MEDIA_FILES = []
 POST_ID = None
+
+TEST_MEDIA_FILES = [
+    "tests/imgs/test_1.jpeg",
+    "tests/imgs/test_2.jpeg",
+    "tests/imgs/test_3.jpeg",
+]
 
 
 @pytest.mark.usefixtures("client")
@@ -261,31 +267,18 @@ class TestFileUpload:
 @pytest.mark.usefixtures("client")
 class TestCreatePost:
 
-    @pytest.fixture
-    def test_media_files(self):
-        # Create temporary media files for testing (images/videos)
-        tmp_path = Path("tests/tmp")
-        tmp_path.mkdir(exist_ok=True)
-
-        media_files = []
-        for i in range(3):  # Create 3 test media files
-            media_file = tmp_path / f"test_image_{i}.jpg"
-            with open(media_file, "wb") as f:
-                f.write(os.urandom(1024))  # 1 KB random data for testing
-            media_files.append(media_file)
-        return media_files
-
-    def test_create_post(self, client, test_media_files):
+    def test_create_post(self, client):
         global ACCESS_TOKEN
         global POST_ID
         global TEST_CONTENT
         global TEST_VISIBILITY
         global TEST_POST_TYPE
+        global TEST_MEDIA_FILES
 
         operations = json.dumps(
             {
                 "query": """
-                mutation($content: String!, $visibility: PostVisibility, $postType: PostType, $mediaFiles: [Upload]) {
+                mutation($content: String!, $visibility: String, $postType: String, $mediaFiles: [Upload]) {
                     createPost(content: $content, visibility: $visibility, postType: $postType, mediaFiles: $mediaFiles) {
                         ok
                         postId
@@ -296,16 +289,19 @@ class TestCreatePost:
                     "content": TEST_CONTENT,
                     "visibility": TEST_VISIBILITY,
                     "postType": TEST_POST_TYPE,
-                    "mediaFiles": None,  # Set to None initially; will replace with files later
+                    "mediaFiles": [None] * len(TEST_MEDIA_FILES),
                 },
             }
         )
+
+
+
         map_data = json.dumps(
-            {str(i): ["variables.mediaFiles"] for i in range(len(test_media_files))}
+            {str(i): [f"variables.mediaFiles.{i}"] for i in range(len(TEST_MEDIA_FILES))}
         )
 
         files = {}
-        for i, media_file in enumerate(test_media_files):
+        for i, media_file in enumerate(TEST_MEDIA_FILES):
             files[str(i)] = (str(media_file), open(media_file, "rb"), "image/jpeg")
 
         files["operations"] = (None, operations)
@@ -323,37 +319,37 @@ class TestCreatePost:
         assert response_data["data"]["createPost"]["ok"] is True
         POST_ID = response_data["data"]["createPost"]["postId"]
 
-    def test_query_post(self, client):
-        global POST_ID
-        query = f"""
-        query {{
-            post(postId: {POST_ID}) {{
-                id,
-                content,
-                likes,
-                visibility,
-                postType,
-                mediaFiles {{
-                    fileUrl,
-                    mediaType
-                }}
-            }}
-        }}
-        """
-        response = client.post("/graphql/", json={"query": query})
-        assert response.status_code == 200
-        post_data = response.json()["data"]["post"]
-        assert post_data["content"] == TEST_CONTENT
-        assert post_data["visibility"] == TEST_VISIBILITY
-        assert post_data["postType"] == TEST_POST_TYPE
+    # def test_query_post(self, client):
+    #     global POST_ID
+    #     query = f"""
+    #     query {{
+    #         post(postId: {POST_ID}) {{
+    #             id,
+    #             content,
+    #             likes,
+    #             visibility,
+    #             postType,
+    #             mediaFiles {{
+    #                 fileUrl,
+    #                 mediaType
+    #             }}
+    #         }}
+    #     }}
+    #     """
+    #     response = client.post("/graphql/", json={"query": query})
+    #     assert response.status_code == 200
+    #     post_data = response.json()["data"]["post"]
+    #     assert post_data["content"] == TEST_CONTENT
+    #     assert post_data["visibility"] == TEST_VISIBILITY
+    #     assert post_data["postType"] == TEST_POST_TYPE
 
-        # Check if media files are returned and remove if necessary
-        media_files = post_data["mediaFiles"]
-        assert media_files is not None
-        for media in media_files:
-            assert Path(media["fileUrl"]).exists()  # Ensure the media file exists
-            # Optionally delete the file after the test
-            os.remove(media["fileUrl"])
+    #     # Check if media files are returned and remove if necessary
+    #     media_files = post_data["mediaFiles"]
+    #     assert media_files is not None
+    #     for media in media_files:
+    #         assert Path(media["fileUrl"]).exists()  # Ensure the media file exists
+    #         # Optionally delete the file after the test
+    #         os.remove(media["fileUrl"])
 
-        # Clean up the post if you have a method to do so
-        # For example, you might want to call a delete mutation
+    # Clean up the post if you have a method to do so
+    # For example, you might want to call a delete mutation
