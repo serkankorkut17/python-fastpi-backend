@@ -1,21 +1,28 @@
+<!-- Activate venv -->
 python3 -m venv venv
+pip install -r requirements. txt
 source venv/bin/activate
 
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-<!-- if not created -->
-alembic init alembic
-
+<!-- Generate requirements.txt -->
 pip freeze > requirements.txt 
 
-<!-- docker -->
+<!-- Run main.py -->
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+<!-- Docker Specific-->
 docker-compose up
 docker-compose build
 docker-compose build --no-cache
 
-<!-- for migrations -->
+<!-- If not created -->
+alembic init alembic
+
+<!-- For migrations with docker-->
 docker-compose run app alembic revision --autogenerate -m "New Migration" 
 docker-compose run app alembic upgrade head
+<!-- For migrations -->
+alembic revision --autogenerate -m "comment"
+alembic upgrade head
 
 <!-- queries -->
 query User{
@@ -68,9 +75,7 @@ mutation CreatePost {
 }
 
 
-
-
-<!-- notes -->
+<!-- Notes -->
 Amazing tutorial.
 If you're coming here in 2023, here's a couple of things you need to know.
 1. graphql is no longer accessible through starlette, use from starlette_graphene3 import GraphQLApp
