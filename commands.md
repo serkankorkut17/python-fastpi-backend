@@ -34,6 +34,7 @@ alembic revision --autogenerate -m "comment"
 <br>
 alembic upgrade head
 
+---
 ### Queries
 query User{
   userById(
