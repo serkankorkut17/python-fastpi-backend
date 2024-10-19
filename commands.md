@@ -6,31 +6,38 @@ python3 -m venv venv
 pip install -r requirements. txt
 <br>
 source venv/bin/activate
+
 ---
 
 ### Generate requirements.txt
 pip freeze > requirements.txt 
+
 ---
 
 ### Run main.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
 ---
+
 ### Docker Specific
 docker-compose up
 <br>
 docker-compose build
 <br>
 docker-compose build --no-cache
+
 ---
 
 ### If not created
 alembic init alembic
+
 ---
+
 ### For migrations with docker
 docker-compose run app alembic revision --autogenerate -m "New Migration"
 <br>
 docker-compose run app alembic upgrade head
-<br>
+
 ---
 
 ### For migrations 
@@ -60,6 +67,7 @@ query{ allPosts{ title } }
 query{ postById(postId:2){ id title content } }
 
 ---
+
 ### Mutations
 mutation CreateRole {
     createRole(name:"Admin", description:"Administrator role with full permissions") {
@@ -89,7 +97,9 @@ mutation CreatePost {
         postId
     }
 }
+
 ---
+
 ### Notes
 Amazing tutorial.
 If you're coming here in 2023, here's a couple of things you need to know.
