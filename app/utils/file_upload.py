@@ -21,7 +21,7 @@ def handle_file_upload(uploaded_file, upload_folder):
 
 
     # Create a unique filename using the current date and time
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     original_filename = uploaded_file.filename
     print(f"Original filename: {original_filename}")
     base_filename, extension = os.path.splitext(original_filename)

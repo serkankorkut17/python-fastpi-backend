@@ -138,6 +138,7 @@ class UpdateUserProfile(graphene.Mutation):
 
     ok = graphene.Boolean()
     user_id = graphene.Int()
+    profile_photo_url = graphene.String()
 
     @staticmethod
     def mutate(
@@ -197,7 +198,9 @@ class UpdateUserProfile(graphene.Mutation):
             logger.info(
                 f"[{UpdateUserProfile.__name__}] User profile updated successfully for user {user.username}"
             )
-            return UpdateUserProfile(ok=True, user_id=user_id)
+            return UpdateUserProfile(
+                ok=True, user_id=user_id, profile_photo_url=profile_picture_path
+            )
         except Exception as e:
             db.rollback()
             logger.error(
@@ -223,7 +226,9 @@ class CreatePost(graphene.Mutation):
     def mutate(root, info, content, visibility=None, post_type=None, media_files=None):
         db: Session = info.context["db"]
 
-        logger.info(f"CreatePost: Content: {content}, Visibility: {visibility}, Post Type: {post_type}")
+        logger.info(
+            f"CreatePost: Content: {content}, Visibility: {visibility}, Post Type: {post_type}"
+        )
 
         # Get the Authorization header from the request
         request = info.context["request"]
@@ -240,7 +245,7 @@ class CreatePost(graphene.Mutation):
             raise HTTPException(
                 status_code=401, detail="User not found or invalid token"
             )
-        
+
         # if visibility is not provided, set it to public by default
         # if visibility is "public" or "private" or "followers", set it to the provided value
         # if visibility is not one of the above, set it to public by default
@@ -273,7 +278,6 @@ class CreatePost(graphene.Mutation):
 
             # log media files
             logger.info(f"Media files: {media_files}")
-            
 
             # Handle media if any URLs are provided
             if media_files:
