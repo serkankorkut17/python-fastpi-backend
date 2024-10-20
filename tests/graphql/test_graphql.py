@@ -51,6 +51,16 @@ class Post:
         self.medias = medias
 
 
+# Class for Comment
+class Comment:
+    def __init__(self, user, post, content, parent_comment=None):
+        self.id = None
+        self.user = user
+        self.post = post
+        self.content = content
+        self.parent_comment = parent_comment
+
+
 # Class for Media
 class Media:
     def __init__(self, file_url, media_type):
@@ -88,33 +98,9 @@ POST_1 = Post(
 )
 POST_2 = Post(USER_2, "This is a test post content 2.", 0, "PRIVATE", "POST", [MEDIA_3])
 
+COMMENT_1 = Comment(USER_1, POST_1, "This is a test comment.")
 
-# ROLE_ID = None
-# ROLE_NAME = "Admin"
-# ROLE_DESCRIPTION = "Administrator role with full permissions"
-
-# USER_ID = None
-# USER_NAME = "test"
-# USER_EMAIL = "test@test.com"
-# USER_PASSWORD = "password"
-# ACCESS_TOKEN = None
-
-# NEW_FIRST_NAME = "NewFirstName"
-# NEW_LAST_NAME = "NewLastName"
-# NEW_BIO = "NewBio"
-# USER_PROFILE_PICTURE = "tests/imgs/test_profile_picture.jpeg"
-
-# TEST_CONTENT = "This is a test post content."
-# TEST_VISIBILITY = "PUBLIC"
-# TEST_POST_TYPE = "POST"
-# TEST_MEDIA_FILES = []
-# POST_ID = None
-
-# TEST_MEDIA_FILES = [
-#     "tests/imgs/test_post_1.jpeg",
-#     "tests/imgs/test_post_2.jpg",
-#     "tests/imgs/test_post_3.jpg",
-# ]
+REPLY_1 = Comment(USER_2, POST_1, "This is a test reply.", COMMENT_1)
 
 
 # Test Role Model
@@ -477,7 +463,11 @@ class TestCreatePost:
         # Prepare the files data
         files = {}
         for i, media_file in enumerate(POST.medias):
-            files[str(i)] = (str(media_file.file_url), open(media_file.file_url, "rb"), "image/jpeg")
+            files[str(i)] = (
+                str(media_file.file_url),
+                open(media_file.file_url, "rb"),
+                "image/jpeg",
+            )
 
         files["operations"] = (None, operations)
         files["map"] = (None, map_data)
@@ -534,3 +524,90 @@ class TestCreatePost:
             assert Path(media["fileUrl"]).exists()  # Ensure the media file exists
             # Optionally delete the file after the test
             os.remove(media["fileUrl"])
+
+
+# Test Comment Model
+@pytest.mark.usefixtures("client")
+class TestCreateComment:
+    global COMMENT_1
+    global REPLY_1
+
+    # Test create comment mutation
+    @pytest.mark.parametrize(
+        "COMMENT",
+        [
+            (COMMENT_1),
+        ],
+    )
+    def test_create_comment(self, client, COMMENT):
+        mutation = f"""
+        mutation {{
+            createComment(postId: {COMMENT.post.id}, content: "{COMMENT.content}") {{
+                ok,
+                commentId
+            }}
+        }}
+        """
+        # Send the request
+        response = client.post(
+            "/graphql/", json={"query": mutation}, headers={"Authorization": f"Bearer {COMMENT.user.access_token}"}
+        )
+        # Check the response
+        assert response.status_code == 200
+        response_data = response.json()
+        logger.info(response_data)
+        assert response_data["data"]["createComment"]["ok"] is True
+        COMMENT.id = response_data["data"]["createComment"]["commentId"]
+
+    # Test create reply mutation
+    @pytest.mark.parametrize(
+        "REPLY",
+        [
+            (REPLY_1),
+        ],
+    )
+    def test_create_reply(self, client, REPLY):
+        mutation = f"""
+        mutation {{
+            createReply(commentId: {REPLY.parent_comment.id}, content: "{REPLY.content}") {{
+                ok,
+                commentId
+            }}
+        }}
+        """
+        # Send the request
+        response = client.post(
+            "/graphql/", json={"query": mutation}, headers={"Authorization": f"Bearer {REPLY.user.access_token}"}
+        )
+        # Check the response
+        assert response.status_code == 200
+        response_data = response.json()
+        logger.info(response_data)
+        assert response_data["data"]["createReply"]["ok"] is True
+        REPLY.id = response_data["data"]["createReply"]["commentId"]
+
+    # Test query comment by id
+    @pytest.mark.parametrize(
+        "COMMENT",
+        [
+            (COMMENT_1),
+            (REPLY_1),
+        ],
+    )
+    def test_query_comment(self, client, COMMENT):
+        query = f"""
+        query {{
+            commentById(commentId: {COMMENT.id}) {{
+                id,
+                content
+            }}
+        }}
+        """
+        # Send the request
+        response = client.post("/graphql/", json={"query": query})
+        # Check the response
+        assert response.status_code == 200
+        comment_data = response.json()["data"]["commentById"]
+        assert comment_data["content"] == COMMENT.content
+
+

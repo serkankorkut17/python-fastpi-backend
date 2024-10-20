@@ -331,6 +331,11 @@ class CreateComment(graphene.Mutation):
             raise HTTPException(
                 status_code=401, detail="User not found or invalid token"
             )
+        # If post is not found, return an error
+        post = crud.find_post_by_id(db, post_id)
+        if not post:
+            logger.error("Post not found")
+            raise HTTPException(status_code=404, detail="Post not found")
         # Create new comment
         db_comment = models.Comment(content=content, post_id=post_id, user_id=user.id)
         # Add comment to the session and commit
