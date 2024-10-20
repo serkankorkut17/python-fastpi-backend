@@ -304,6 +304,108 @@ class CreatePost(graphene.Mutation):
             )
 
 
+# Create comment mutation
+class CreateComment(graphene.Mutation):
+    class Arguments:
+        post_id = graphene.Int(required=True)  # Required post ID
+        content = graphene.String(required=True)  # Required content
+
+    ok = graphene.Boolean()  # Return True if comment creation is successful
+    comment_id = graphene.Int()  # Return the created comment's ID
+
+    @staticmethod
+    def mutate(root, info, post_id, content):
+        db: Session = info.context["db"]
+        # Log the comment creation details
+        logger.info(f"CreateComment: Post ID: {post_id}, Content: {content}")
+        # Get the Authorization header from the request
+        request = info.context["request"]
+        authorization = request.headers.get("Authorization")
+        # Check if the user is authenticated
+        token_data = check_auth(authorization)
+        # Fetch the user based on token
+        user = crud.find_user_by_username(db, token_data["username"])
+        # If user is not found, return an error
+        if not user:
+            logger.error("User not found or invalid token")
+            raise HTTPException(
+                status_code=401, detail="User not found or invalid token"
+            )
+        # Create new comment
+        db_comment = models.Comment(content=content, post_id=post_id, user_id=user.id)
+        # Add comment to the session and commit
+        try:
+            comment_id = crud.save_to_db(db, db_comment)
+            # Log the successful comment creation
+            logger.info(
+                f"CreateComment: New comment created by user {user.username} with comment_id {comment_id}"
+            )
+            return CreateComment(ok=True, comment_id=comment_id)
+        # Handle any exceptions
+        except Exception as e:
+            db.rollback()
+            logger.error(f"CreateComment: Error creating comment - {str(e)}")
+            raise HTTPException(
+                status_code=400, detail="Error creating comment: " + str(e)
+            )
+
+
+# Create reply mutation
+class CreateReply(graphene.Mutation):
+    class Arguments:
+        comment_id = graphene.Int(required=True)  # Required comment ID
+        content = graphene.String(required=True)  # Required content
+
+    ok = graphene.Boolean()  # Return True if comment creation is successful
+    comment_id = graphene.Int()  # Return the created comment's ID
+
+    @staticmethod
+    def mutate(root, info, comment_id, content):
+        db: Session = info.context["db"]
+        # Log the comment creation details
+        logger.info(f"CreateComment: Comment ID: {comment_id}, Content: {content}")
+        # Get the Authorization header from the request
+        request = info.context["request"]
+        authorization = request.headers.get("Authorization")
+        # Check if the user is authenticated
+        token_data = check_auth(authorization)
+        # Fetch the user based on token
+        user = crud.find_user_by_username(db, token_data["username"])
+        # If user is not found, return an error
+        if not user:
+            logger.error("User not found or invalid token")
+            raise HTTPException(
+                status_code=401, detail="User not found or invalid token"
+            )
+        # Find parent comment
+        parent_comment = crud.find_comment_by_id(db, comment_id)
+        if not parent_comment:
+            logger.error("Parent comment not found")
+            raise HTTPException(status_code=404, detail="Parent comment not found")
+        # Create new comment
+        db_comment = models.Comment(
+            content=content,
+            post_id=parent_comment.post_id,
+            parent_comment_id=comment_id,
+            user_id=user.id,
+        )
+        # Add comment to the session and commit
+        try:
+            comment_id = crud.save_to_db(db, db_comment)
+            # Log the successful comment creation
+            logger.info(
+                f"CreateComment: New comment created by user {user.username} with comment_id {comment_id}"
+            )
+            return CreateComment(ok=True, comment_id=comment_id)
+        # Handle any exceptions
+        except Exception as e:
+            db.rollback()
+            logger.error(f"CreateComment: Error creating comment - {str(e)}")
+            raise HTTPException(
+                status_code=400, detail="Error creating comment: " + str(e)
+            )
+
+
 # File upload mutation
 class FileUpload(graphene.Mutation):
     class Arguments:
@@ -341,4 +443,6 @@ class Mutation(graphene.ObjectType):
     login = Login.Field()  # Login mutation
     update_user_profile = UpdateUserProfile.Field()  # Update user profile mutation
     create_post = CreatePost.Field()  # Create post mutation
+    create_comment = CreateComment.Field()  # Create comment mutation
+    create_reply = CreateReply.Field()  # Create reply mutation
     file_upload = FileUpload.Field()  # File upload mutation

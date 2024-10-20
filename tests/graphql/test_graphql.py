@@ -505,7 +505,7 @@ class TestCreatePost:
     def test_query_post(self, client, POST):
         query = f"""
         query {{
-            post(postId: {POST.id}) {{
+            postById(postId: {POST.id}) {{
                 id,
                 content,
                 likes,
@@ -522,7 +522,7 @@ class TestCreatePost:
         response = client.post("/graphql/", json={"query": query})
         # Check the response
         assert response.status_code == 200
-        post_data = response.json()["data"]["post"]
+        post_data = response.json()["data"]["postById"]
         assert post_data["content"] == POST.content
         assert post_data["visibility"].lower() == POST.visibility.lower()
         assert post_data["postType"].lower() == POST.post_type.lower()

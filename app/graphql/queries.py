@@ -34,7 +34,28 @@ class Query(graphene.ObjectType):
         UserProfileModel, user_id=graphene.Int(required=True)
     )  # User profile by User ID
 
-    post = graphene.Field(PostModel, post_id=graphene.Int(required=True))  # Post by ID
+    all_posts = graphene.List(PostModel)  # List of all postss
+    post_by_id = graphene.Field(
+        PostModel, post_id=graphene.Int(required=True)
+    )  # Post by ID
+
+    all_parent_comments_by_post_id = graphene.List(
+        CommentModel, post_id=graphene.Int(required=True)
+    )  # List of all parent comments by Post ID
+
+    all_comments_by_post_id = graphene.List(
+        CommentModel, post_id=graphene.Int(required=True)
+    )  # List of all comments by Post ID
+    comment_by_id = graphene.Field(
+        CommentModel, comment_id=graphene.Int(required=True)
+    )  # Comment by ID
+
+    all_media_by_post_id = graphene.List(
+        MediaModel, post_id=graphene.Int(required=True)
+    )  # List of all media by Post ID
+    media_by_id = graphene.Field(
+        MediaModel, media_id=graphene.Int(required=True)
+    )  # Media by ID
 
     # Resolver functions
     # All users
@@ -79,10 +100,46 @@ class Query(graphene.ObjectType):
             raise HTTPException(status_code=404, detail="User not found")
         return user_profile
 
+    # All posts
+    def resolve_all_posts(self, info):
+        db: Session = info.context["db"]
+        return crud.find_all_posts(db)
+
     # Post by ID
-    def resolve_post(self, info, post_id):
+    def resolve_post_by_id(self, info, post_id):
         db: Session = info.context["db"]
         post = crud.find_post_by_id(db, post_id)
         if not post:
             raise HTTPException(status_code=404, detail="Post not found")
         return post
+
+    # All parent comments by Post ID
+    def resolve_all_parent_comments_by_post_id(self, info, post_id):
+        db: Session = info.context["db"]
+        return crud.find_all_parent_comments_by_post_id(db, post_id)
+
+    # All comments by Post ID
+    def resolve_all_comments_by_post_id(self, info, post_id):
+        db: Session = info.context["db"]
+        return crud.find_all_comments_by_post_id(db, post_id)
+
+    # Comment by ID
+    def resolve_comment_by_id(self, info, comment_id):
+        db: Session = info.context["db"]
+        comment = crud.find_comment_by_id(db, comment_id)
+        if not comment:
+            raise HTTPException(status_code=404, detail="Comment not found")
+        return comment
+
+    # All media by Post ID
+    def resolve_all_media_by_post_id(self, info, post_id):
+        db: Session = info.context["db"]
+        return crud.find_all_media_by_post_id(db, post_id)
+
+    # Media by ID
+    def resolve_media_by_id(self, info, media_id):
+        db: Session = info.context["db"]
+        media = crud.find_media_by_id(db, media_id)
+        if not media:
+            raise HTTPException(status_code=404, detail="Media not found")
+        return media
