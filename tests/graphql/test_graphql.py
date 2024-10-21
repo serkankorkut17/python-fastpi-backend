@@ -550,7 +550,9 @@ class TestCreateComment:
         """
         # Send the request
         response = client.post(
-            "/graphql/", json={"query": mutation}, headers={"Authorization": f"Bearer {COMMENT.user.access_token}"}
+            "/graphql/",
+            json={"query": mutation},
+            headers={"Authorization": f"Bearer {COMMENT.user.access_token}"},
         )
         # Check the response
         assert response.status_code == 200
@@ -577,7 +579,9 @@ class TestCreateComment:
         """
         # Send the request
         response = client.post(
-            "/graphql/", json={"query": mutation}, headers={"Authorization": f"Bearer {REPLY.user.access_token}"}
+            "/graphql/",
+            json={"query": mutation},
+            headers={"Authorization": f"Bearer {REPLY.user.access_token}"},
         )
         # Check the response
         assert response.status_code == 200
@@ -609,5 +613,3 @@ class TestCreateComment:
         assert response.status_code == 200
         comment_data = response.json()["data"]["commentById"]
         assert comment_data["content"] == COMMENT.content
-
-

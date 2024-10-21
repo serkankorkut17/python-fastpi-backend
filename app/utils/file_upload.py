@@ -3,7 +3,7 @@ import shutil
 from fastapi import HTTPException
 from datetime import datetime
 
-# from app.utils.video_utils import compress_video
+from app.utils.video_utils import compress_video, is_ffmpeg_installed
 from app.utils.image_utils import compress_image
 
 
@@ -48,9 +48,18 @@ def handle_file_upload(uploaded_file, upload_folder):
                 upload_directory, f"{timestamp}_{base_filename}.webp"
             )
             compress_image(temp_file_path, output_file_path)  # Convert to WebP
-        # elif uploaded_file.content_type.startswith('video/'):
-        #     output_file_path = os.path.join(upload_directory, f"{timestamp}_{base_filename}.webm")
-        #     compress_video(temp_file_path, output_file_path)  # Compress video
+        elif is_ffmpeg_installed() and uploaded_file.content_type.startswith("video/"):
+            output_file_path = os.path.join(
+                upload_directory, f"{timestamp}_{base_filename}.webm"
+            )
+            compress_video(
+                temp_file_path,
+                output_file_path,
+                quality=35,
+                speed=8,
+                max_width=1920,
+                max_height=1080,
+            )  # Compress video
         else:
             raise HTTPException(
                 status_code=400,

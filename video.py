@@ -18,11 +18,6 @@ def is_ffmpeg_installed():
         return False
     except FileNotFoundError:
         return False
-    
-
-# quality (crf): Controls the quality of the video (lower values result in higher quality but larger files). For libvpx-vp9, the recommended range is 15-35, with 23 as a default.
-# preset: Controls the speed vs compression efficiency. Options include ultrafast, fast, medium, slow, and slower. Faster presets result in larger file sizes but quicker compression, while slower presets yield smaller file sizes at the cost of time.
-# The speed option takes values from 0 (slowest, best quality) to 8 (fastest, lower quality). A value of 2 to 5 is often a good balance.
 
 
 def compress_video(
@@ -53,7 +48,7 @@ def compress_video(
     if video_stream:
         width = int(video_stream["width"])
         height = int(video_stream["height"])
-        # print(f"Original Resolution: {width}x{height}")
+        print(f"Original Resolution: {width}x{height}")
 
         # Check if the resolution exceeds the max width or height
         if width > max_width or height > max_height:
@@ -65,12 +60,12 @@ def compress_video(
             else:
                 new_height = max_height
                 new_width = int(max_height * aspect_ratio)
-            # print(f"Downgrading resolution to: {new_width}x{new_height}")
+            print(f"Downgrading resolution to: {new_width}x{new_height}")
         else:
             new_width = width
             new_height = height
     else:
-        # print("No video stream found.")
+        print("No video stream found.")
         return
 
     ffmpeg.input(input_video_path).output(
@@ -82,9 +77,9 @@ def compress_video(
         s=f"{new_width}x{new_height}",  # Set the output resolution
     ).run()
 
-    # print(
-    #     f"Successfully compressed {input_video_path} to {output_video_path} with quality={quality} and preset={preset}"
-    # )
+    print(
+        f"Successfully compressed {input_video_path} to {output_video_path} with quality={quality} and preset={preset}"
+    )
 
 
 def convert_to_webm(input_video_path, output_video_path):
@@ -95,22 +90,26 @@ def convert_to_webm(input_video_path, output_video_path):
     """
     ffmpeg.input(input_video_path).output(output_video_path, vcodec="libvpx-vp9").run()
 
-    # print(f"Successfully converted {input_video_path} to {output_video_path}")
+    print(f"Successfully converted {input_video_path} to {output_video_path}")
+
+
+# quality (crf): Controls the quality of the video (lower values result in higher quality but larger files). For libvpx-vp9, the recommended range is 15-35, with 23 as a default.
+# preset: Controls the speed vs compression efficiency. Options include ultrafast, fast, medium, slow, and slower. Faster presets result in larger file sizes but quicker compression, while slower presets yield smaller file sizes at the cost of time.
 
 # Example usage
 # Check if
-# if not is_ffmpeg_installed():
-#     print("FFmpeg is not installed. Please install FFmpeg to use this script.")
-#     sys.exit(1)
-# else:
-#     print("FFmpeg is installed.")
-# input_video = "uploads/uhd_3840_2160_25fps.mp4"
-# compressed_video = "uploads/compressed_video.webm"
-# compress_video(
-#     input_video,
-#     compressed_video,
-#     quality=35,
-#     speed=8,
-#     max_width=1920,
-#     max_height=1080,
-# )
+if not is_ffmpeg_installed():
+    print("FFmpeg is not installed. Please install FFmpeg to use this script.")
+    sys.exit(1)
+else:
+    print("FFmpeg is installed.")
+input_video = "uploads/uhd_3840_2160_25fps.mp4"
+compressed_video = "uploads/compressed_video.webm"
+compress_video(
+    input_video,
+    compressed_video,
+    quality=35,
+    speed=8,
+    max_width=1920,
+    max_height=1080,
+)
