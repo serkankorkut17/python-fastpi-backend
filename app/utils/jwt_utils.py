@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt
 from dotenv import load_dotenv
 from fastapi import HTTPException
@@ -25,7 +25,10 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     # Copy the data to avoid modifying the original
     to_encode = data.copy()
     # !!! utcnow deprecated !!!
-    expire = datetime.utcnow() + (
+    # expire = datetime.utcnow() + (
+    #     expires_delta or timedelta(minutes=30)
+    # )  # Default to 30 minutes if no expiration provided
+    expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=30)
     )  # Default to 30 minutes if no expiration provided
     # Add the expiration and audience claims
@@ -56,12 +59,13 @@ def decode_access_token(token: str):
 
 # Generate an access token
 def generate_access_token(user):
-    access_token_expires = timedelta(minutes=60)
+    access_token_expires = timedelta(minutes=600)
     data = {
         "user_id": user.id,  # Include the user's ID
         "username": user.username,  # Include the user's username
         "role": user.role.name,  # Include the user's role
-        "iat": datetime.utcnow(),  # Time the token was issued
+        # "iat": datetime.utcnow(),  # Time the token was issued
+        "iat": datetime.now(timezone.utc),  # Time the token was issued
     }
     # Create the access token
     access_token = create_access_token(data=data, expires_delta=access_token_expires)

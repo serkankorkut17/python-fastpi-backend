@@ -1,5 +1,9 @@
 # Project Specific
 uploads/
+recorded_audio/
+
+key.pem
+cert.pem
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

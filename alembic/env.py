@@ -20,7 +20,7 @@ config = context.config
 # TEMP_DATABASE_URL="sqlite:///./test.db"
 # config.set_main_option("sqlalchemy.url", TEMP_DATABASE_URL)
 # -----------------------------
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+config.set_main_option("sqlalchemy.url", os.getenv("CLOUD_DATABASE_URL"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

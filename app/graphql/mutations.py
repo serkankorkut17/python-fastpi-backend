@@ -1,9 +1,9 @@
 import graphene
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException, UploadFile, Depends
 from graphene_file_upload.scalars import Upload
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt
 import os
 import shutil
@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 # Import custom modules
+from app.db_configuration import get_db
 from app.utils import (
     hash_password,
     authenticate_user,
@@ -42,7 +43,8 @@ class Login(graphene.Mutation):
         # Generate access token
         access_token = generate_access_token(user)
         # update last_login field
-        user.last_login = datetime.utcnow()
+        # user.last_login = datetime.utcnow()
+        user.last_login = datetime.now(timezone.utc)
         crud.save_to_db(db, user)
         # Log the successful login
         logger.info(f"[{Login.__name__}] User {username} logged in successfully")
@@ -67,8 +69,13 @@ class CreateUser(graphene.Mutation):
         # Check if the role exists
         role = crud.find_role_by_id(db, role_id)
         if not role:
-            logger.error(f"[{CreateUser.__name__}] Role with ID {role_id} not found")
-            raise HTTPException(status_code=404, detail="Role not found")
+            # create a new role
+            role = models.Role(name="user", description="Default user role")
+            role_id = crud.save_to_db(db, role)
+            role = crud.find_role_by_id(db, role_id)
+            if not role:
+                logger.error(f"[{CreateUser.__name__}] Role with ID {role_id} not found")
+                raise HTTPException(status_code=404, detail="Role not found")
         # Hash the password
         hashed_password = hash_password(password)
         # Create a new User instance
@@ -145,6 +152,7 @@ class UpdateUserProfile(graphene.Mutation):
         root, info, first_name=None, last_name=None, bio=None, profile_photo=None
     ):
         db: Session = info.context["db"]
+        # db: Session = next(get_db())
         # Get the Authorization header from the request
         request = info.context["request"]
         authorization = request.headers.get("Authorization")
@@ -220,6 +228,7 @@ class CreatePost(graphene.Mutation):
     @staticmethod
     def mutate(root, info, content, visibility=None, post_type=None, media_files=None):
         db: Session = info.context["db"]
+        # db: Session = next(get_db())
         # Log the post creation details
         logger.info(
             f"CreatePost: Content: {content}, Visibility: {visibility}, Post Type: {post_type}"
@@ -316,6 +325,7 @@ class CreateComment(graphene.Mutation):
     @staticmethod
     def mutate(root, info, post_id, content):
         db: Session = info.context["db"]
+        # db: Session = next(get_db())
         # Log the comment creation details
         logger.info(f"CreateComment: Post ID: {post_id}, Content: {content}")
         # Get the Authorization header from the request
@@ -367,6 +377,7 @@ class CreateReply(graphene.Mutation):
     @staticmethod
     def mutate(root, info, comment_id, content):
         db: Session = info.context["db"]
+        # db: Session = next(get_db())
         # Log the comment creation details
         logger.info(f"CreateComment: Comment ID: {comment_id}, Content: {content}")
         # Get the Authorization header from the request

@@ -8,20 +8,20 @@ from dotenv import load_dotenv
 load_dotenv(".env")
 
 # Fetch the database URL from environment variables
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+POSTGRE_DATABASE_URL = os.getenv("POSTGRE_DATABASE_URL")
+CLOUD_DATABASE_URL = os.getenv("CLOUD_DATABASE_URL")
+# SQLITE_DATABASE_URL = os.getenv("SQLITE_DATABASE_URL")
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
-IS_TESTING = os.getenv("TESTING")
 
-
-# Dependency to get the database session
-# def get_database_url():
-#     return TEST_DATABASE_URL if IS_TESTING else SQLALCHEMY_DATABASE_URL
-
+IS_CLOUD = True
+SQLALCHEMY_DATABASE_URL = CLOUD_DATABASE_URL if IS_CLOUD else POSTGRE_DATABASE_URL
 
 # Error handling if the environment variable is not found
 if not SQLALCHEMY_DATABASE_URL:
     raise ValueError("DATABASE_URL is not set in the environment")
 
+# Fetch IS_TESTING from environment variables and convert it to a boolean
+IS_TESTING = os.getenv("IS_TEST", "false").lower() == "true"
 # Create the SQLAlchemy engine
 engine = None
 if IS_TESTING:

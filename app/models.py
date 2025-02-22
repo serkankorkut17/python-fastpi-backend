@@ -5,6 +5,8 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     UniqueConstraint,
+    Boolean,
+    Table,
 )
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -139,11 +141,9 @@ class Post(Base):
 
     likes = Column(Integer, default=0)  # Like count for posts
     visibility = Column(
-        SQLAlchemyEnum(PostVisibility), values_callable=lambda x: [e.value for e in x]
+        SQLAlchemyEnum(PostVisibility)
     )  # Post visibility (public, private, followers)
-    post_type = Column(
-        SQLAlchemyEnum(PostType), values_callable=lambda x: [e.value for e in x]
-    )  # Post type (post, share, promotion)
+    post_type = Column(SQLAlchemyEnum(PostType))  # Post type (post, share, promotion)
     parent_post_id = Column(
         Integer, ForeignKey("posts.id"), nullable=True
     )  # For shared posts
@@ -204,7 +204,7 @@ class Media(Base):
     id = Column(Integer, primary_key=True, index=True)  # Media ID
     file_url = Column(String, nullable=False)  # URL or path to the media file
     media_type = Column(
-        SQLAlchemyEnum(MediaType), values_callable=lambda x: [e.value for e in x]
+        SQLAlchemyEnum(MediaType)
     )  # Media type (image, video, audio, document)
     post_id = Column(
         Integer, ForeignKey("posts.id"), nullable=False
@@ -215,3 +215,46 @@ class Media(Base):
     # __repr__ method to return a string representation of the object
     def __repr__(self):
         return f"<Media(file_url={self.file_url}, media_type={self.media_type})>"
+
+
+# Voice room participants association table
+voice_room_participants = Table(
+    "voice_room_participants",
+    Base.metadata,
+    Column("room_id", Integer, ForeignKey("voice_rooms.id", ondelete="CASCADE")),
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE")),
+    Column("is_muted", Boolean, default=False),
+    Column("joined_at", DateTime(timezone=True), server_default=func.now()),
+)
+
+class VoiceRoom(Base):
+    __tablename__ = "voice_rooms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(255))
+    created_by = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_private = Column(Boolean, default=False)
+    max_participants = Column(Integer, default=10)
+
+    # Relationships
+    owner = relationship("User", foreign_keys=[created_by])
+    participants = relationship(
+        "User", secondary=voice_room_participants, backref="voice_rooms"
+    )
+
+
+class VoiceMessage(Base):
+    __tablename__ = "voice_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    room_id = Column(Integer, ForeignKey("voice_rooms.id", ondelete="CASCADE"))
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    file_url = Column(String, nullable=False)
+    duration = Column(Integer)  # Duration in seconds
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    room = relationship("VoiceRoom", backref="messages")
+    user = relationship("User", backref="voice_messages")
