@@ -17,7 +17,6 @@ from pathlib import Path
 # Custom imports
 from app.db_configuration import get_db, init_db
 from app.graphql import schema
-from app.chat_server import chat_router
 
 
 # Lifespan context manager for database session
@@ -49,9 +48,6 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-# Route for the chat server
-app.include_router(chat_router)
-
 
 # Favicon route
 @app.get("/favicon.ico")
@@ -65,9 +61,7 @@ async def favicon():
 async def create_upload_file(file: UploadFile):
     # Create the uploads directory if it doesn't exist
     UPLOAD_DIR = Path("uploads")
-    UPLOAD_DIR.mkdir(
-        parents=True, exist_ok=True
-    )
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     try:
         file_location = UPLOAD_DIR / file.filename
         # Save the file with a unique name to avoid collisions
